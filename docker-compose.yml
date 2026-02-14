@@ -23,6 +23,10 @@ services:
     build:
       context: .
       dockerfile: docker/Dockerfile.frontend
+      args:
+        VITE_API_KEY: ${API_SECRET_KEY:-}
+    env_file:
+      - ./backend/.env
     ports:
       - "80:80"
     depends_on:

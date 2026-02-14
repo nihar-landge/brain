@@ -14,6 +14,8 @@ COPY frontend/ .
 # VITE_API_URL is left empty so the frontend uses relative URLs
 # (nginx on the same origin proxies /api to the backend)
 ENV VITE_API_URL=""
+ARG VITE_API_KEY=""
+ENV VITE_API_KEY=${VITE_API_KEY}
 RUN npm run build
 
 # Stage 2: Serve with nginx
