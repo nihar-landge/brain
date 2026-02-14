@@ -1,0 +1,296 @@
+@import "tailwindcss";
+
+@theme {
+  /* Grayscale Palette */
+  --color-black: #000000;
+  --color-gray-900: #1a1a1a;
+  --color-gray-800: #333333;
+  --color-gray-700: #4d4d4d;
+  --color-gray-600: #666666;
+  --color-gray-500: #808080;
+  --color-gray-400: #999999;
+  --color-gray-300: #cccccc;
+  --color-gray-200: #e6e6e6;
+  --color-gray-100: #f5f5f5;
+  --color-white: #ffffff;
+
+  /* Accent (for AI features) */
+  --color-accent: #4A90E2;
+
+  /* Semantic */
+  --color-success: #2ecc71;
+  --color-warning: #f39c12;
+  --color-error: #e74c3c;
+
+  /* Typography */
+  --font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 font-sans antialiased;
+    min-height: 100vh;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #cccccc;
+    border-radius: 6px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #999999;
+  }
+
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #cccccc transparent;
+  }
+}
+
+@layer components {
+
+  /* === CARD === */
+  .card {
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+    transition: box-shadow 0.3s ease;
+  }
+
+  .card:hover {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+  }
+
+  /* === BUTTONS === */
+  .btn-primary {
+    @apply px-4 py-2 rounded-lg text-sm font-medium text-white transition-all;
+    background: var(--color-black);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  .btn-primary:active {
+    transform: translateY(0);
+    background: var(--color-gray-900);
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all;
+    color: var(--color-gray-700);
+    border: 1px solid var(--color-gray-200);
+    background: var(--color-white);
+  }
+
+  .btn-secondary:hover {
+    background: var(--color-gray-100);
+    border-color: var(--color-gray-300);
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .btn-ghost {
+    @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    color: var(--color-gray-600);
+    background: transparent;
+  }
+
+  .btn-ghost:hover {
+    color: var(--color-gray-900);
+    background: var(--color-gray-100);
+  }
+
+  .btn-link {
+    @apply text-sm font-medium transition-colors p-0;
+    color: var(--color-accent);
+    background: none;
+    border: none;
+  }
+
+  .btn-link:hover {
+    color: #357ABD;
+  }
+
+  /* === INPUTS === */
+  .input-field {
+    @apply w-full px-3 py-2 rounded-lg text-sm text-gray-900 outline-none transition-all;
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+  }
+
+  .input-field::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  .input-field:focus {
+    border-color: var(--color-gray-400);
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+  }
+
+  /* === BADGE / TAG === */
+  .badge {
+    @apply inline-flex items-center px-3 py-1 rounded-full text-xs font-medium;
+    color: var(--color-gray-700);
+    background: var(--color-gray-100);
+  }
+
+  /* === PROGRESS BAR === */
+  .progress-bar-bg {
+    background: var(--color-gray-200);
+    border-radius: 999px;
+    overflow: hidden;
+    height: 12px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    border-radius: 999px;
+    background: var(--color-black);
+    transition: width 0.6s ease;
+  }
+
+  /* === SLIDER (range) === */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 999px;
+    background: var(--color-gray-200);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-black);
+    cursor: pointer;
+    border: 2px solid var(--color-white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--color-black);
+    cursor: pointer;
+    border: 2px solid var(--color-white);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* === NAV === */
+  .nav-link {
+    @apply px-3 py-2 rounded-lg text-sm font-medium transition-colors;
+    color: var(--color-gray-500);
+  }
+
+  .nav-link:hover {
+    color: var(--color-gray-900);
+    background: var(--color-gray-100);
+  }
+
+  .nav-link-active {
+    color: var(--color-black) !important;
+    background: var(--color-gray-100);
+  }
+
+  /* === SECTION BORDER === */
+  .section-card {
+    background: var(--color-white);
+    border: 1px solid var(--color-gray-200);
+    border-radius: 12px;
+  }
+
+  .section-card-header {
+    @apply px-6 py-4 font-semibold text-base;
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+
+  /* === INSIGHT / ALERT BORDER === */
+  .insight-card {
+    @apply p-4 rounded-lg;
+    border-left: 4px solid var(--color-accent);
+    background: #f0f7ff;
+  }
+
+  .insight-card-success {
+    border-left-color: var(--color-success);
+    background: #f0fdf4;
+  }
+
+  .insight-card-warning {
+    border-left-color: var(--color-warning);
+    background: #fffbeb;
+  }
+
+  .insight-card-error {
+    border-left-color: var(--color-error);
+    background: #fef2f2;
+  }
+
+  /* === SKELETON === */
+  .skeleton {
+    background: var(--color-gray-100);
+    border-radius: 8px;
+    animation: pulse 2s ease-in-out infinite;
+  }
+
+  /* === TOAST === */
+  .toast {
+    @apply fixed top-6 right-6 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg;
+    animation: slideIn 0.3s ease-out;
+  }
+
+  .toast-success {
+    background: var(--color-success);
+    color: white;
+  }
+
+  .toast-error {
+    background: var(--color-error);
+    color: white;
+  }
+
+  .toast-info {
+    background: var(--color-gray-900);
+    color: white;
+  }
+}
+
+/* === ANIMATIONS === */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.animate-in {
+  animation: fadeIn 0.3s ease-out;
+}
