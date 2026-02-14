@@ -105,13 +105,13 @@ export default function GoalsPage() {
         <div className="space-y-10 max-w-4xl mx-auto">
             {/* ============ GOALS SECTION ============ */}
             <section>
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
                     <h2 className="text-2xl font-bold text-gray-900">Goals</h2>
                     <div className="flex gap-2">
                         <div className="flex border border-gray-200 rounded-lg overflow-hidden">
                             {['active', 'completed', 'all'].map(f => (
                                 <button key={f} onClick={() => setGoalFilter(f)}
-                                    className={`px-3 py-1.5 text-sm font-medium capitalize transition-colors ${
+                                    className={`px-3 py-2 text-sm font-medium capitalize transition-colors ${
                                         goalFilter === f
                                             ? 'bg-black text-white'
                                             : 'text-gray-500 hover:bg-gray-50'
@@ -136,7 +136,7 @@ export default function GoalsPage() {
                         <textarea className="input-field min-h-[60px] resize-none" placeholder="Description..."
                             value={goalForm.goal_description}
                             onChange={e => setGoalForm({ ...goalForm, goal_description: e.target.value })} />
-                        <div className="grid grid-cols-4 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                             <select className="input-field" value={goalForm.goal_category}
                                 onChange={e => setGoalForm({ ...goalForm, goal_category: e.target.value })}>
                                 {['personal', 'health', 'career', 'education', 'finance', 'creative'].map(c => (
@@ -188,7 +188,7 @@ export default function GoalsPage() {
                                 </div>
 
                                 {/* Metadata */}
-                                <div className="flex gap-4 text-sm text-gray-600 mb-4">
+                                <div className="flex flex-wrap gap-3 text-sm text-gray-600 mb-4">
                                     {goal.target_date && (
                                         <>
                                             <span className="flex items-center gap-1">
@@ -205,20 +205,20 @@ export default function GoalsPage() {
                                 </div>
 
                                 {/* Actions */}
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                     {[5, 10, 25].map(v => (
                                         <button key={v} onClick={() => updateProgress(goal.id, v)}
-                                            className="btn-secondary text-sm py-1.5 px-3">
+                                            className="btn-secondary text-sm py-2 px-3">
                                             +{v}%
                                         </button>
                                     ))}
                                     <button onClick={() => updateProgress(goal.id, -10)}
-                                        className="btn-secondary text-sm py-1.5 px-3">-10%</button>
+                                        className="btn-secondary text-sm py-2 px-3">-10%</button>
                                     {goal.progress < 100 && (
                                         <button onClick={() => updateProgress(goal.id, 100 - goal.progress)}
-                                            className="btn-primary text-sm py-1.5 px-3 ml-auto flex items-center gap-1">
+                                            className="btn-primary text-sm py-2 px-3 sm:ml-auto flex items-center gap-1">
                                             <CheckCircle className="w-4 h-4" />
-                                            Mark Complete
+                                            <span className="hidden sm:inline">Mark</span> Complete
                                         </button>
                                     )}
                                 </div>
@@ -257,7 +257,7 @@ export default function GoalsPage() {
                                 {categories.map(cat => (
                                     <button key={cat} type="button"
                                         onClick={() => setHabitForm({ ...habitForm, habit_category: cat })}
-                                        className={`px-3 py-1.5 rounded-lg text-sm capitalize transition-colors ${
+                                        className={`px-3 py-2 rounded-lg text-sm capitalize transition-colors ${
                                             habitForm.habit_category === cat
                                                 ? 'bg-black text-white'
                                                 : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -269,11 +269,11 @@ export default function GoalsPage() {
                         </div>
                         <div>
                             <p className="text-sm text-gray-600 mb-2">Frequency</p>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                                 {['daily', '3x_per_week', 'weekly'].map(f => (
                                     <button key={f} type="button"
                                         onClick={() => setHabitForm({ ...habitForm, target_frequency: f })}
-                                        className={`px-3 py-1.5 rounded-lg text-sm transition-colors ${
+                                        className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                                             habitForm.target_frequency === f
                                                 ? 'bg-black text-white'
                                                 : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
@@ -327,7 +327,7 @@ export default function GoalsPage() {
                                     {/* Weekly Calendar */}
                                     <div className="mb-4">
                                         <p className="text-sm text-gray-600 mb-2">This week</p>
-                                        <div className="grid grid-cols-7 gap-2">
+                                        <div className="grid grid-cols-7 gap-1 sm:gap-2">
                                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
                                                 const today = new Date().getDay()
                                                 const dayIdx = today === 0 ? 6 : today - 1 // Mon=0
@@ -335,15 +335,15 @@ export default function GoalsPage() {
                                                 const isToday = i === dayIdx
                                                 return (
                                                     <div key={day} className="text-center">
-                                                        <p className="text-xs text-gray-500 mb-1">{day}</p>
+                                                        <p className="text-[10px] sm:text-xs text-gray-500 mb-1">{day}</p>
                                                         <div className={`
-                                                            w-10 h-10 rounded-full flex items-center justify-center mx-auto
+                                                            w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mx-auto
                                                             ${isPast && s?.current_streak > 0 ? 'bg-green-500' :
                                                               isToday ? 'border-2 border-black' :
                                                               'bg-gray-200'}
                                                         `}>
                                                             {isPast && s?.current_streak > 0 && (
-                                                                <Check className="w-5 h-5 text-white" />
+                                                                <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                                                             )}
                                                         </div>
                                                     </div>

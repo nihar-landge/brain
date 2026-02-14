@@ -79,7 +79,7 @@ export default function JournalPage() {
 
                     <form onSubmit={handleSubmit}>
                         {/* Date & Time */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                             <div>
                                 <label className="text-sm text-gray-600 block mb-1">Date</label>
                                 <input
@@ -152,7 +152,7 @@ export default function JournalPage() {
                         </div>
 
                         {/* Tags & Category */}
-                        <div className="grid grid-cols-2 gap-4 mb-6">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                             <div>
                                 <label className="text-sm font-medium mb-2 block text-gray-700">Tags</label>
                                 <input
@@ -199,13 +199,13 @@ export default function JournalPage() {
 
             {/* Recent Entries */}
             <div className="card p-6">
-                <div className="flex justify-between items-center mb-4">
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 mb-4">
                     <h3 className="text-xl font-semibold text-gray-900">Recent Entries</h3>
                     <div className="flex gap-2">
-                        <div className="relative">
+                        <div className="relative flex-1 sm:flex-initial">
                             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <input
-                                className="input-field pl-10 w-48"
+                                className="input-field pl-10 w-full sm:w-48"
                                 placeholder="Search..."
                                 value={searchQuery}
                                 onChange={e => setSearchQuery(e.target.value)}
@@ -266,7 +266,7 @@ export default function JournalPage() {
                                 <p className="text-gray-700 text-sm line-clamp-2">{entry.content}</p>
 
                                 {entry.tags?.length > 0 && (
-                                    <div className="flex gap-2 mt-3">
+                                    <div className="flex flex-wrap gap-2 mt-3">
                                         {(typeof entry.tags === 'string' ? JSON.parse(entry.tags) : entry.tags).map((tag, i) => (
                                             <span key={i} className="badge text-xs">{tag}</span>
                                         ))}

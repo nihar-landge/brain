@@ -71,19 +71,17 @@ export default function AnalyticsPage() {
     return (
         <div className="space-y-8 max-w-5xl mx-auto">
             {/* Header */}
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Analytics & Insights</h1>
-                    <p className="text-sm text-gray-500 mt-1">Patterns, predictions, and correlations</p>
-                </div>
+            <div>
+                <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Analytics & Insights</h1>
+                <p className="text-sm text-gray-500 mt-1">Patterns, predictions, and correlations</p>
             </div>
 
             {/* Time Range Tabs */}
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
                 {[
-                    { label: 'This Week', value: '7' },
-                    { label: 'This Month', value: '30' },
-                    { label: 'Last 90 Days', value: '90' },
+                    { label: 'Week', value: '7' },
+                    { label: 'Month', value: '30' },
+                    { label: '90 Days', value: '90' },
                     { label: 'All Time', value: '365' },
                 ].map(({ label, value }) => (
                     <button key={value}

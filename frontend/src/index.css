@@ -31,8 +31,10 @@
   body {
     @apply bg-white text-gray-900 font-sans antialiased;
     min-height: 100vh;
+    min-height: 100dvh;
     font-size: 16px;
     line-height: 1.5;
+    -webkit-text-size-adjust: 100%;
   }
 
   ::-webkit-scrollbar {
@@ -74,8 +76,9 @@
 
   /* === BUTTONS === */
   .btn-primary {
-    @apply px-4 py-2 rounded-lg text-sm font-medium text-white transition-all;
+    @apply px-4 py-2.5 rounded-lg text-sm font-medium text-white transition-all;
     background: var(--color-black);
+    min-height: 44px;
   }
 
   .btn-primary:hover {
@@ -89,10 +92,11 @@
   }
 
   .btn-secondary {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-all;
+    @apply px-4 py-2.5 rounded-lg text-sm font-medium transition-all;
     color: var(--color-gray-700);
     border: 1px solid var(--color-gray-200);
     background: var(--color-white);
+    min-height: 44px;
   }
 
   .btn-secondary:hover {
@@ -103,9 +107,10 @@
   }
 
   .btn-ghost {
-    @apply px-4 py-2 rounded-lg text-sm font-medium transition-colors;
+    @apply px-4 py-2.5 rounded-lg text-sm font-medium transition-colors;
     color: var(--color-gray-600);
     background: transparent;
+    min-height: 44px;
   }
 
   .btn-ghost:hover {
@@ -126,9 +131,10 @@
 
   /* === INPUTS === */
   .input-field {
-    @apply w-full px-3 py-2 rounded-lg text-sm text-gray-900 outline-none transition-all;
+    @apply w-full px-3 py-2.5 rounded-lg text-sm text-gray-900 outline-none transition-all;
     background: var(--color-white);
     border: 1px solid var(--color-gray-200);
+    min-height: 44px;
   }
 
   .input-field::placeholder {
@@ -177,8 +183,8 @@
   input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
-    width: 18px;
-    height: 18px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: var(--color-black);
     cursor: pointer;
@@ -187,13 +193,25 @@
   }
 
   input[type="range"]::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: var(--color-black);
     cursor: pointer;
     border: 2px solid var(--color-white);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  /* Desktop: smaller slider thumbs */
+  @media (min-width: 640px) {
+    input[type="range"]::-webkit-slider-thumb {
+      width: 18px;
+      height: 18px;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+    }
   }
 
   /* === NAV === */
@@ -220,7 +238,7 @@
   }
 
   .section-card-header {
-    @apply px-6 py-4 font-semibold text-base;
+    @apply px-4 py-4 font-semibold text-base sm:px-6;
     border-bottom: 1px solid var(--color-gray-200);
   }
 
@@ -255,7 +273,8 @@
 
   /* === TOAST === */
   .toast {
-    @apply fixed top-6 right-6 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg;
+    @apply fixed top-4 right-4 left-4 sm:left-auto sm:right-6 sm:top-6 z-50 px-4 py-3 rounded-lg text-sm font-medium shadow-lg;
+    max-width: 400px;
     animation: slideIn 0.3s ease-out;
   }
 
@@ -272,6 +291,11 @@
   .toast-info {
     background: var(--color-gray-900);
     color: white;
+  }
+
+  /* === SAFE BOTTOM (iOS safe area) === */
+  .safe-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 }
 

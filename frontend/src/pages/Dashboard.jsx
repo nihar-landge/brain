@@ -85,12 +85,12 @@ export default function Dashboard() {
         return (
             <div className="space-y-6">
                 <div className="h-6 skeleton w-48"></div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="h-48 skeleton"></div>
                     <div className="h-48 skeleton"></div>
                 </div>
                 <div className="h-64 skeleton"></div>
-                <div className="grid grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
                     <div className="h-40 skeleton"></div>
                     <div className="h-40 skeleton"></div>
                 </div>

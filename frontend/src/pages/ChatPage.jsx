@@ -91,16 +91,16 @@ export default function ChatPage() {
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-7rem)] max-w-3xl mx-auto">
+        <div className="flex flex-col h-[calc(100dvh-10rem)] sm:h-[calc(100dvh-7rem)] max-w-3xl mx-auto">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Chat with AI</h1>
-                    <p className="text-sm text-gray-500 mt-1">AI assistant with memory of your journal</p>
+                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Chat with AI</h1>
+                    <p className="text-sm text-gray-500 mt-1 hidden sm:block">AI assistant with memory of your journal</p>
                 </div>
                 <button onClick={handleClear} className="btn-ghost flex items-center gap-2 text-sm text-gray-500">
                     <Trash2 className="w-4 h-4" />
-                    Clear Chat
+                    <span className="hidden sm:inline">Clear Chat</span>
                 </button>
             </div>
 
@@ -163,7 +163,7 @@ export default function ChatPage() {
                     <button
                         key={i}
                         onClick={() => handleSend(prompt)}
-                        className="px-3 py-1.5 text-sm border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600 transition-colors"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600 transition-colors"
                     >
                         {prompt}
                     </button>
