@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { Brain, LayoutDashboard, BookOpen, MessageCircle, Target, BarChart3, Settings, Users, Clock, FlaskConical, MoreHorizontal } from 'lucide-react'
+import { Brain, LayoutDashboard, BookOpen, MessageCircle, Target, BarChart3, Settings, Users, Clock, FlaskConical, MoreHorizontal, Candy, ListChecks } from 'lucide-react'
+import { getActiveContext } from './api'
 import Dashboard from './pages/Dashboard'
 import JournalPage from './pages/JournalPage'
 import ChatPage from './pages/ChatPage'
@@ -10,6 +11,8 @@ import SocialGraphPage from './pages/SocialGraphPage'
 import TimeTrackerPage from './pages/TimeTrackerPage'
 import CausalPage from './pages/CausalPage'
 import SettingsPage from './pages/SettingsPage'
+import DopamineMenuPage from './pages/DopamineMenuPage'
+import TasksPage from './pages/TasksPage'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -19,6 +22,8 @@ const navItems = [
   { to: '/analytics', icon: BarChart3, label: 'Analytics' },
   { to: '/social', icon: Users, label: 'Social' },
   { to: '/timer', icon: Clock, label: 'Timer' },
+  { to: '/dopamine', icon: Candy, label: 'Dopamine' },
+  { to: '/tasks', icon: ListChecks, label: 'Tasks' },
   { to: '/causal', icon: FlaskConical, label: 'Causal' },
 ]
 
@@ -26,9 +31,31 @@ const navItems = [
 const mobileNavItems = navItems.slice(0, 4)
 const mobileOverflowItems = navItems.slice(4)
 
+function getElapsedSeconds(activeContext) {
+  if (!activeContext?.started_at) return 0
+
+  const startedAt = activeContext.started_at
+  const normalized = startedAt.includes('T') ? startedAt : `${startedAt.replace(' ', 'T')}Z`
+  const parsed = new Date(normalized)
+
+  if (Number.isNaN(parsed.getTime())) {
+    return (activeContext.elapsed_minutes || 0) * 60
+  }
+
+  return Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000))
+}
+
+function formatBeaconTime(seconds) {
+  const mins = String(Math.floor(seconds / 60)).padStart(2, '0')
+  const secs = String(seconds % 60).padStart(2, '0')
+  return `${mins}:${secs}`
+}
+
 export default function App() {
   const location = useLocation()
   const [showMore, setShowMore] = useState(false)
+  const [activeTimer, setActiveTimer] = useState(null)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const moreRef = useRef(null)
 
   // Close "More" menu on outside click or route change
@@ -49,6 +76,45 @@ export default function App() {
   const isOverflowActive = mobileOverflowItems.some(item => 
     item.to === '/' ? location.pathname === '/' : location.pathname.startsWith(item.to)
   )
+
+  useEffect(() => {
+    let mounted = true
+
+    const refreshActiveTimer = async () => {
+      try {
+        const { data } = await getActiveContext()
+        if (!mounted) return
+
+        if (data?.active) {
+          setActiveTimer(data)
+          setElapsedSeconds(getElapsedSeconds(data))
+        } else {
+          setActiveTimer(null)
+          setElapsedSeconds(0)
+        }
+      } catch {
+        // keep previous beacon state on transient errors
+      }
+    }
+
+    refreshActiveTimer()
+    const poll = setInterval(refreshActiveTimer, 10000)
+
+    return () => {
+      mounted = false
+      clearInterval(poll)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!activeTimer) return
+
+    const tick = setInterval(() => {
+      setElapsedSeconds(getElapsedSeconds(activeTimer))
+    }, 1000)
+
+    return () => clearInterval(tick)
+  }, [activeTimer])
 
   return (
     <div className="min-h-screen bg-white">
@@ -78,25 +144,57 @@ export default function App() {
             ))}
           </nav>
 
-          {/* Settings */}
-          <NavLink
-            to="/settings"
-            className={({ isActive }) =>
-              `nav-link ${isActive ? 'nav-link-active' : ''}`
-            }
-          >
-            <Settings className="w-4 h-4" />
-          </NavLink>
+          <div className="flex items-center gap-2">
+            {activeTimer?.active && (
+              <NavLink
+                to="/timer"
+                className="focus-beacon-chip flex items-center gap-2 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-gray-100/80 hover:bg-gray-100 transition-colors"
+              >
+                <span className="relative flex items-center justify-center w-2.5 h-2.5">
+                  <span className="focus-beacon-ring absolute inset-0 rounded-full" />
+                  <span className="focus-beacon-dot w-2 h-2 rounded-full bg-accent" />
+                </span>
+                <span className="text-[11px] font-mono text-gray-700">{formatBeaconTime(elapsedSeconds)}</span>
+                <span className="text-xs text-gray-600 max-w-[120px] truncate">{activeTimer.context_name}</span>
+              </NavLink>
+            )}
+
+            {/* Settings */}
+            <NavLink
+              to="/settings"
+              className={({ isActive }) =>
+                `nav-link ${isActive ? 'nav-link-active' : ''}`
+              }
+            >
+              <Settings className="w-4 h-4" />
+            </NavLink>
+          </div>
         </div>
       </header>
 
       {/* Mobile Top Bar — shown only on mobile */}
       <header className="sticky top-0 z-20 bg-white border-b border-gray-200 sm:hidden">
-        <div className="px-4 flex items-center justify-between h-12">
-          <NavLink to="/" className="flex items-center gap-2">
-            <Brain className="w-5 h-5 text-gray-900" />
-            <span className="text-base font-semibold text-gray-900">brain</span>
-          </NavLink>
+        <div className="px-4 flex items-center justify-between h-12 gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <NavLink to="/" className="flex items-center gap-2">
+              <Brain className="w-5 h-5 text-gray-900" />
+              <span className="text-base font-semibold text-gray-900">brain</span>
+            </NavLink>
+
+            {activeTimer?.active && (
+              <NavLink
+                to="/timer"
+                className="focus-beacon-chip flex items-center gap-1.5 px-2 py-1 rounded-md border border-gray-200 bg-gray-100/90"
+              >
+                <span className="relative flex items-center justify-center w-2 h-2">
+                  <span className="focus-beacon-ring absolute inset-0 rounded-full" />
+                  <span className="focus-beacon-dot w-1.5 h-1.5 rounded-full bg-accent" />
+                </span>
+                <span className="text-[10px] font-mono text-gray-700">{formatBeaconTime(elapsedSeconds)}</span>
+              </NavLink>
+            )}
+          </div>
+
           <NavLink
             to="/settings"
             className={({ isActive }) =>
@@ -118,6 +216,8 @@ export default function App() {
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/social" element={<SocialGraphPage />} />
           <Route path="/timer" element={<TimeTrackerPage />} />
+          <Route path="/dopamine" element={<DopamineMenuPage />} />
+          <Route path="/tasks" element={<TasksPage />} />
           <Route path="/causal" element={<CausalPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

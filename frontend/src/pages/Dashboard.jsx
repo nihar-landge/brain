@@ -4,13 +4,13 @@ import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContai
 import {
     Plus, MessageCircle, TrendingUp, Sparkles, Calendar, Clock, Users,
     AlertTriangle, Zap, Brain, ArrowUpRight, ArrowDownRight, Timer, FlaskConical,
-    Activity, Battery
+    Activity, Battery, ListChecks
 } from 'lucide-react'
 import {
     getDashboardData, getPredictionStatus, getInsights, getHabits, getHabitStats, predictMood,
     getContextSummary, getActiveContext, getDeepWorkBlocks,
     getPeople, getSocialBatteryHistory, getToxicPatterns,
-    getCorrelations, getCounterfactuals,
+    getCorrelations, getCounterfactuals, getTasks,
 } from '../api'
 import { useChartColors } from '../ThemeContext'
 
@@ -74,6 +74,7 @@ export default function Dashboard() {
     const [toxicPatterns, setToxicPatterns] = useState([])
     const [correlations, setCorrelations] = useState([])
     const [counterfactuals, setCounterfactuals] = useState([])
+    const [tasks, setTasks] = useState([])
 
     useEffect(() => {
         const fetchAll = async () => {
@@ -82,7 +83,7 @@ export default function Dashboard() {
                     dashRes, mlRes, habitsRes, insightsRes,
                     ctxRes, activeRes, deepRes,
                     peopleRes, batteryRes, toxicRes,
-                    corrRes, cfRes,
+                    corrRes, cfRes, tasksRes,
                 ] = await Promise.allSettled([
                     getDashboardData(),
                     getPredictionStatus(),
@@ -96,6 +97,7 @@ export default function Dashboard() {
                     getToxicPatterns(),
                     getCorrelations(30),
                     getCounterfactuals(),
+                    getTasks({ status: 'all' }),
                 ])
 
                 if (dashRes.status === 'fulfilled') setData(dashRes.value.data)
@@ -112,6 +114,7 @@ export default function Dashboard() {
                 if (toxicRes.status === 'fulfilled') setToxicPatterns(toxicRes.value.data || [])
                 if (corrRes.status === 'fulfilled') setCorrelations(corrRes.value.data?.correlations || [])
                 if (cfRes.status === 'fulfilled') setCounterfactuals(cfRes.value.data || [])
+                if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value.data || [])
 
                 // Fetch habit stats in parallel
                 if (habitsRes.status === 'fulfilled') {
@@ -144,7 +147,7 @@ export default function Dashboard() {
             <div className="space-y-6">
                 <div className="h-6 skeleton w-48"></div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    {[...Array(4)].map((_, i) => <div key={i} className="h-24 skeleton"></div>)}
+                    {[...Array(5)].map((_, i) => <div key={i} className="h-24 skeleton"></div>)}
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="h-56 skeleton"></div>
@@ -165,6 +168,8 @@ export default function Dashboard() {
     const totalDeepMins = contextSummary?.deep_work_minutes || 0
     const totalFocusMins = contextSummary?.total_minutes || 0
     const latestBattery = socialBattery.length > 0 ? socialBattery[socialBattery.length - 1]?.battery_level : null
+    const todayIso = new Date().toISOString().slice(0, 10)
+    const dueTodayCount = tasks.filter(t => t.status !== 'done' && t.due_date === todayIso).length
 
     // Top correlations (significant only, sorted by absolute strength)
     const topCorrelations = correlations
@@ -192,6 +197,10 @@ export default function Dashboard() {
                     <button onClick={() => navigate('/journal')} className="btn-primary flex items-center gap-2 text-sm">
                         <Plus className="w-4 h-4" />
                         <span className="hidden sm:inline">New Entry</span>
+                    </button>
+                    <button onClick={() => navigate('/tasks')} className="btn-secondary flex items-center gap-2 text-sm">
+                        <ListChecks className="w-4 h-4" />
+                        <span className="hidden sm:inline">New Task</span>
                     </button>
                     <button onClick={() => navigate('/chat')} className="btn-secondary flex items-center gap-2 text-sm">
                         <MessageCircle className="w-4 h-4" />
@@ -240,7 +249,7 @@ export default function Dashboard() {
             )}
 
             {/* Stat Cards Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
                 <StatCard
                     label="Mood"
                     value={todayMood ? `${todayMood}/10` : '--'}
@@ -270,6 +279,13 @@ export default function Dashboard() {
                         : 'No prediction'}
                     icon={TrendingUp}
                     onClick={() => navigate('/analytics')}
+                />
+                <StatCard
+                    label="Tasks Due"
+                    value={`${dueTodayCount}`}
+                    sub={dueTodayCount > 0 ? 'Due today' : 'Nothing due today'}
+                    icon={ListChecks}
+                    onClick={() => navigate('/tasks')}
                 />
             </div>
 

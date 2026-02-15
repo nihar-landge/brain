@@ -44,7 +44,7 @@ def get_db():
 def create_tables():
     """Create all database tables."""
     # Import all models so they register with Base
-    from models import user, journal, habits, goals, social, context  # noqa: F401
+    from models import user, journal, habits, goals, social, context, dopamine  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 

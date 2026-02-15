@@ -27,6 +27,8 @@ from api.social_graph import router as social_graph_router
 from api.context_switching import router as context_router
 from api.multi_agent import router as multi_agent_router
 from api.causal_inference import router as causal_router
+from api.dopamine import router as dopamine_router
+from api.tasks import router as tasks_router
 
 
 @asynccontextmanager
@@ -146,6 +148,18 @@ app.include_router(
     causal_router,
     prefix="/api/causal",
     tags=["Causal Inference"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    dopamine_router,
+    prefix="/api/dopamine",
+    tags=["Dopamine Menu"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    tasks_router,
+    prefix="/api/tasks",
+    tags=["Tasks"],
     dependencies=auth_dep,
 )
 

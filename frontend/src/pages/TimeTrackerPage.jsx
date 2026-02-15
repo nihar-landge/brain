@@ -21,6 +21,8 @@ import {
   getOptimalWorkTimes,
   getAttentionResidue,
   getHabits,
+  suggestDopamine,
+  updateDopamineEvent,
 } from '../api'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -77,7 +79,14 @@ export default function TimeTrackerPage() {
   const [stopForm, setStopForm] = useState({ mood: 5, energy: 5, productivity: 5 })
   const [habits, setHabits] = useState([])
   const [selectedHabitId, setSelectedHabitId] = useState('')
+  const [dopamineSuggestion, setDopamineSuggestion] = useState(null)
+  const [breakSecondsLeft, setBreakSecondsLeft] = useState(0)
+  const [shownLongSessionMilestones, setShownLongSessionMilestones] = useState({
+    sixty: false,
+    ninety: false,
+  })
   const timerRef = useRef(null)
+  const breakTimerRef = useRef(null)
   const colors = useChartColors()
 
   const loadData = useCallback(async () => {
@@ -117,6 +126,12 @@ export default function TimeTrackerPage() {
   }, [loadData])
 
   useEffect(() => {
+    if (!active) {
+      setShownLongSessionMilestones({ sixty: false, ninety: false })
+    }
+  }, [active])
+
+  useEffect(() => {
     if (active) {
       timerRef.current = setInterval(() => {
         const fromStart = getElapsedSeconds(active)
@@ -130,6 +145,65 @@ export default function TimeTrackerPage() {
     }
     clearInterval(timerRef.current)
   }, [active])
+
+  useEffect(() => {
+    if (breakSecondsLeft > 0) {
+      breakTimerRef.current = setInterval(() => {
+        setBreakSecondsLeft((prev) => Math.max(0, prev - 1))
+      }, 1000)
+      return () => clearInterval(breakTimerRef.current)
+    }
+    clearInterval(breakTimerRef.current)
+  }, [breakSecondsLeft])
+
+  const requestDopamineSuggestion = useCallback(async (payload) => {
+    try {
+      const { data } = await suggestDopamine(payload)
+      if (data?.options?.length) {
+        setDopamineSuggestion(data)
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }, [])
+
+  const dismissSuggestion = async () => {
+    if (dopamineSuggestion?.event_id) {
+      try {
+        await updateDopamineEvent(dopamineSuggestion.event_id, { accepted: false, completed: false })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    setDopamineSuggestion(null)
+  }
+
+  const acceptSuggestion = async (item) => {
+    const mins = item.duration_min || 5
+    setBreakSecondsLeft(mins * 60)
+    if (dopamineSuggestion?.event_id) {
+      try {
+        await updateDopamineEvent(dopamineSuggestion.event_id, { accepted: true })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+  }
+
+  const completeSuggestion = async () => {
+    if (dopamineSuggestion?.event_id) {
+      try {
+        await updateDopamineEvent(dopamineSuggestion.event_id, {
+          accepted: true,
+          completed: true,
+        })
+      } catch (e) {
+        console.error(e)
+      }
+    }
+    setBreakSecondsLeft(0)
+    setDopamineSuggestion(null)
+  }
 
   const handleStart = async () => {
     if (!contextName.trim()) return
@@ -150,13 +224,34 @@ export default function TimeTrackerPage() {
 
   const handleStop = async () => {
     try {
-      await stopContext({
+      const { data } = await stopContext({
         mood_after: stopForm.mood,
         energy_after: stopForm.energy,
         productivity_rating: stopForm.productivity,
       })
+
+      const sessionMinutes = data?.duration_minutes || elapsedMinutes
+
       setActive(null)
       setElapsedSeconds(0)
+
+      if (stopForm.energy <= 4 || sessionMinutes >= 90) {
+        requestDopamineSuggestion({
+          trigger_type: 'exhausted',
+          session_minutes: sessionMinutes,
+          energy_after: stopForm.energy,
+          productivity_rating: stopForm.productivity,
+          context_log_id: data?.id,
+        })
+      } else if (stopForm.productivity >= 8 && sessionMinutes >= 60) {
+        requestDopamineSuggestion({
+          trigger_type: 'manual',
+          session_minutes: sessionMinutes,
+          productivity_rating: stopForm.productivity,
+          context_log_id: data?.id,
+        })
+      }
+
       loadData()
     } catch {}
   }
@@ -181,6 +276,12 @@ export default function TimeTrackerPage() {
     return `${h}:${m}:${s}`
   }
 
+  const formatCountdown = (seconds) => {
+    const m = String(Math.floor(seconds / 60)).padStart(2, '0')
+    const s = String(seconds % 60).padStart(2, '0')
+    return `${m}:${s}`
+  }
+
   const tabs = [
     { id: 'timer', label: 'Timer', icon: Clock },
     { id: 'summary', label: 'Today', icon: BarChart3 },
@@ -190,6 +291,34 @@ export default function TimeTrackerPage() {
 
   const elapsedMinutes = Math.floor(elapsedSeconds / 60)
   const focusProgress = Math.min(100, Math.round((elapsedMinutes / 90) * 100))
+
+  useEffect(() => {
+    if (tab === 'timer' && !active && !dopamineSuggestion) {
+      requestDopamineSuggestion({ trigger_type: 'pre_start', session_minutes: 0 })
+    }
+  }, [tab, active, dopamineSuggestion, requestDopamineSuggestion])
+
+  useEffect(() => {
+    if (!active) return
+
+    if (elapsedMinutes >= 60 && !shownLongSessionMilestones.sixty) {
+      requestDopamineSuggestion({
+        trigger_type: 'long_session',
+        session_minutes: elapsedMinutes,
+        context_log_id: active.id,
+      })
+      setShownLongSessionMilestones((prev) => ({ ...prev, sixty: true }))
+    }
+
+    if (elapsedMinutes >= 90 && !shownLongSessionMilestones.ninety) {
+      requestDopamineSuggestion({
+        trigger_type: 'long_session',
+        session_minutes: elapsedMinutes,
+        context_log_id: active.id,
+      })
+      setShownLongSessionMilestones((prev) => ({ ...prev, ninety: true }))
+    }
+  }, [elapsedMinutes, active, shownLongSessionMilestones, requestDopamineSuggestion])
 
   if (loading) {
     return (
@@ -248,6 +377,50 @@ export default function TimeTrackerPage() {
               </p>
             </div>
           </div>
+
+          {dopamineSuggestion && dopamineSuggestion.options?.length > 0 && (
+            <div className="card p-4 border-l-4 border-l-accent">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs uppercase tracking-wide text-accent font-medium">Dopamine Menu Suggestion</p>
+                  <p className="text-sm text-gray-700 mt-1">
+                    Feeling exhausted or deep in a long session? Take a healthy break instead of scrolling.
+                  </p>
+                  {dopamineSuggestion.reason && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      {dopamineSuggestion.selection_mode === 'ai' ? 'AI-ranked' : 'Rule-ranked'}: {dopamineSuggestion.reason}
+                    </p>
+                  )}
+                </div>
+                <div className="flex gap-2">
+                  <button className="btn-secondary text-xs" onClick={dismissSuggestion}>Dismiss</button>
+                </div>
+              </div>
+
+              {breakSecondsLeft > 0 ? (
+                <div className="mt-3 rounded-lg border border-gray-200 bg-gray-100/70 p-3">
+                  <p className="text-xs text-gray-500">Break timer running</p>
+                  <p className="text-2xl font-mono font-semibold text-gray-900 mt-1">{formatCountdown(breakSecondsLeft)}</p>
+                  <button className="btn-primary mt-3 text-xs" onClick={completeSuggestion}>Done, Back to Focus</button>
+                </div>
+              ) : (
+                <div className="mt-3 grid sm:grid-cols-3 gap-2">
+                  {dopamineSuggestion.options.map((item) => (
+                    <button
+                      key={item.id}
+                      onClick={() => acceptSuggestion(item)}
+                      className="text-left border border-gray-200 rounded-lg p-3 hover:bg-gray-100 transition-colors"
+                    >
+                      <p className="text-xs text-gray-500 uppercase tracking-wide">{item.category}</p>
+                      <p className="text-sm font-medium text-gray-900 mt-0.5">{item.title}</p>
+                      {item.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{item.description}</p>}
+                      <p className="text-[11px] text-accent mt-1">{item.duration_min || 5} min</p>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {active ? (
             <div className="card p-5 sm:p-6 border-2 border-accent overflow-hidden relative">
@@ -340,9 +513,18 @@ export default function TimeTrackerPage() {
               <div className="card p-5 sm:p-6 lg:col-span-3">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="text-sm font-medium text-gray-900">Start New Context</h3>
-                  <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
-                    <Sparkles className="w-3 h-3 text-accent" /> Focus sprint
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => requestDopamineSuggestion({ trigger_type: 'manual', session_minutes: 0 })}
+                      className="text-[11px] text-gray-500 hover:text-gray-900 border border-gray-200 rounded-full px-2 py-1"
+                    >
+                      Need dopamine?
+                    </button>
+                    <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                      <Sparkles className="w-3 h-3 text-accent" /> Focus sprint
+                    </span>
+                  </div>
                 </div>
 
                 <div className="space-y-3">

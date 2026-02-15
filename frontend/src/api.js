@@ -108,6 +108,24 @@ export const getDeepWorkBlocks = (days = 30) => api.get('/context/deep-work', { 
 export const getOptimalWorkTimes = (days = 30) => api.get('/context/optimal-times', { params: { days } })
 export const getAttentionResidue = (days = 30) => api.get('/context/attention-residue', { params: { days } })
 
+// ======================== DOPAMINE MENU ========================
+
+export const getDopamineItems = (activeOnly = true) => api.get('/dopamine/items', { params: { active_only: activeOnly } })
+export const createDopamineItem = (data) => api.post('/dopamine/items', data)
+export const updateDopamineItem = (id, data) => api.put(`/dopamine/items/${id}`, data)
+export const deleteDopamineItem = (id) => api.delete(`/dopamine/items/${id}`)
+export const suggestDopamine = (data) => api.post('/dopamine/suggest', data)
+export const createDopamineEvent = (data) => api.post('/dopamine/events', data)
+export const updateDopamineEvent = (id, data) => api.put(`/dopamine/events/${id}`, data)
+
+// ======================== TASKS ========================
+
+export const getTasks = (params = {}) => api.get('/tasks', { params })
+export const createTask = (data) => api.post('/tasks', data)
+export const getTask = (id) => api.get(`/tasks/${id}`)
+export const updateTask = (id, data) => api.put(`/tasks/${id}`, data)
+export const deleteTask = (id) => api.delete(`/tasks/${id}`)
+
 // ======================== MULTI-AGENT ========================
 
 export const getAgents = () => api.get('/agents/agents')
