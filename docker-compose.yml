@@ -25,6 +25,8 @@ services:
       dockerfile: docker/Dockerfile.frontend
       args:
         VITE_API_KEY: ${API_SECRET_KEY:-}
+        BASIC_AUTH_USER: ${BASIC_AUTH_USER:-nihar}
+        BASIC_AUTH_PASS: ${BASIC_AUTH_PASS:-kalash@1}
     env_file:
       - ./backend/.env
     ports:

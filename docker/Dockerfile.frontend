@@ -21,15 +21,20 @@ RUN npm run build
 # Stage 2: Serve with nginx
 FROM nginx:alpine
 
-# Generate self-signed SSL certificate (valid 365 days)
-RUN apk add --no-cache openssl && \
+# Build args for Basic Auth credentials
+ARG BASIC_AUTH_USER=nihar
+ARG BASIC_AUTH_PASS=changeme
+
+# Generate self-signed SSL certificate and Basic Auth htpasswd file
+RUN apk add --no-cache openssl apache2-utils && \
     mkdir -p /etc/nginx/ssl && \
     openssl req -x509 -nodes -days 365 \
       -newkey rsa:2048 \
       -keyout /etc/nginx/ssl/self-signed.key \
       -out /etc/nginx/ssl/self-signed.crt \
       -subj "/C=US/ST=State/L=City/O=Brain/CN=localhost" && \
-    apk del openssl
+    htpasswd -cb /etc/nginx/.htpasswd "$BASIC_AUTH_USER" "$BASIC_AUTH_PASS" && \
+    apk del openssl apache2-utils
 
 # Copy built files to nginx html directory
 COPY --from=build /app/dist /usr/share/nginx/html
