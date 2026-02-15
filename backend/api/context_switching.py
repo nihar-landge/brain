@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from utils.database import get_db
 from services.context_switching_service import context_switching_service
 from models.habits import Habit
+from models.dopamine import Task
+from services.google_calendar_service import google_calendar_service
 
 router = APIRouter()
 
@@ -24,6 +26,9 @@ class StartContextRequest(BaseModel):
     context_type: str = "deep_work"  # deep_work, communication, admin, personal, coding, writing, studying
     task_complexity: Optional[int] = Field(None, ge=1, le=10)
     habit_id: Optional[int] = None  # Link session to a habit (Goal → Habit → Session)
+    task_id: Optional[int] = (
+        None  # Optional task linkage for spent time + calendar sync
+    )
 
 
 class EndContextRequest(BaseModel):
@@ -54,6 +59,12 @@ async def start_context(data: StartContextRequest, db: Session = Depends(get_db)
         if not habit:
             raise HTTPException(status_code=404, detail="Habit not found")
 
+    task = None
+    if data.task_id:
+        task = db.query(Task).filter(Task.id == data.task_id, Task.user_id == 1).first()
+        if not task:
+            raise HTTPException(status_code=404, detail="Task not found")
+
     ctx = context_switching_service.start_context(
         db,
         user_id=1,
@@ -61,6 +72,7 @@ async def start_context(data: StartContextRequest, db: Session = Depends(get_db)
         context_type=data.context_type,
         task_complexity=data.task_complexity,
         habit_id=data.habit_id,
+        task_id=data.task_id,
     )
     result = {
         "id": ctx.id,
@@ -69,10 +81,13 @@ async def start_context(data: StartContextRequest, db: Session = Depends(get_db)
         "started_at": str(ctx.started_at),
         "status": "started",
         "habit_id": ctx.habit_id,
+        "task_id": ctx.task_id,
     }
     if habit:
         result["habit_name"] = habit.habit_name
         result["goal_id"] = habit.goal_id
+    if task:
+        result["task_title"] = task.title
     return result
 
 
@@ -90,12 +105,26 @@ async def stop_context(data: EndContextRequest, db: Session = Depends(get_db)):
     if not ctx:
         raise HTTPException(status_code=404, detail="No active context found")
 
+    # Auto-sync ended session to Google Calendar if connected and duration >= 5 min
+    if (ctx.duration_minutes or 0) >= 5:
+        try:
+            event_id = await google_calendar_service.create_session_event(
+                db, ctx, user_id=1
+            )
+            if event_id:
+                ctx.google_event_id = event_id
+                db.commit()
+        except Exception:
+            # Keep timer flow resilient even if calendar sync fails
+            pass
+
     return {
         "id": ctx.id,
         "context_name": ctx.context_name,
         "duration_minutes": ctx.duration_minutes,
         "cognitive_load": ctx.estimated_cognitive_load,
         "status": "stopped",
+        "task_id": ctx.task_id,
     }
 
 

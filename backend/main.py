@@ -29,6 +29,10 @@ from api.multi_agent import router as multi_agent_router
 from api.causal_inference import router as causal_router
 from api.dopamine import router as dopamine_router
 from api.tasks import router as tasks_router
+from api.calendar import (
+    router as calendar_router,
+    public_router as calendar_public_router,
+)
 
 
 @asynccontextmanager
@@ -161,6 +165,17 @@ app.include_router(
     prefix="/api/tasks",
     tags=["Tasks"],
     dependencies=auth_dep,
+)
+app.include_router(
+    calendar_router,
+    prefix="/api/calendar",
+    tags=["Calendar"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    calendar_public_router,
+    prefix="/api/calendar",
+    tags=["Calendar Public"],
 )
 
 

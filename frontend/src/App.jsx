@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
-import { Brain, LayoutDashboard, BookOpen, MessageCircle, Target, BarChart3, Settings, Users, Clock, FlaskConical, MoreHorizontal, Candy, ListChecks } from 'lucide-react'
+import { Brain, LayoutDashboard, BookOpen, MessageCircle, Target, BarChart3, Settings, Users, Clock, FlaskConical, MoreHorizontal, Candy, ListChecks, CalendarDays } from 'lucide-react'
 import { getActiveContext } from './api'
 import Dashboard from './pages/Dashboard'
 import JournalPage from './pages/JournalPage'
@@ -13,6 +13,7 @@ import CausalPage from './pages/CausalPage'
 import SettingsPage from './pages/SettingsPage'
 import DopamineMenuPage from './pages/DopamineMenuPage'
 import TasksPage from './pages/TasksPage'
+import CalendarPage from './pages/CalendarPage'
 
 const navItems = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -24,6 +25,7 @@ const navItems = [
   { to: '/timer', icon: Clock, label: 'Timer' },
   { to: '/dopamine', icon: Candy, label: 'Dopamine' },
   { to: '/tasks', icon: ListChecks, label: 'Tasks' },
+  { to: '/calendar', icon: CalendarDays, label: 'Calendar' },
   { to: '/causal', icon: FlaskConical, label: 'Causal' },
 ]
 
@@ -218,6 +220,7 @@ export default function App() {
           <Route path="/timer" element={<TimeTrackerPage />} />
           <Route path="/dopamine" element={<DopamineMenuPage />} />
           <Route path="/tasks" element={<TasksPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
           <Route path="/causal" element={<CausalPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>

@@ -84,6 +84,11 @@ class Task(Base):
 
     due_date = Column(Date, nullable=True)
     scheduled_at = Column(DateTime, nullable=True)
+    scheduled_end = Column(DateTime, nullable=True)
+    is_all_day = Column(Boolean, default=False)
+
+    estimated_minutes = Column(Integer, nullable=True)
+    spent_minutes = Column(Integer, default=0)
 
     goal_id = Column(
         Integer, ForeignKey("goals.id", ondelete="SET NULL"), nullable=True
@@ -92,6 +97,7 @@ class Task(Base):
         Integer, ForeignKey("habits.id", ondelete="SET NULL"), nullable=True
     )
     tags = Column(JSON, nullable=True)
+    google_event_id = Column(String(255), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow)
@@ -99,4 +105,32 @@ class Task(Base):
     __table_args__ = (
         Index("idx_tasks_user_status", "user_id", "status"),
         Index("idx_tasks_user_due", "user_id", "due_date"),
+    )
+
+
+class CalendarIntegration(Base):
+    __tablename__ = "calendar_integrations"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    provider = Column(String(30), nullable=False, default="google")
+    calendar_id = Column(String(255), nullable=True)
+
+    access_token = Column(Text, nullable=True)
+    refresh_token = Column(Text, nullable=True)
+    token_uri = Column(String(255), nullable=True)
+    client_id = Column(String(255), nullable=True)
+    client_secret = Column(String(255), nullable=True)
+    scopes = Column(JSON, nullable=True)
+    token_expiry = Column(DateTime, nullable=True)
+
+    is_connected = Column(Boolean, default=False)
+    last_sync_at = Column(DateTime, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow)
+
+    __table_args__ = (
+        Index("idx_calendar_integrations_user_provider", "user_id", "provider"),
     )

@@ -7,8 +7,11 @@ const EMPTY_FORM = {
   description: '',
   priority: 'medium',
   status: 'todo',
+  schedule_type: 'none',
   due_date: '',
   scheduled_at: '',
+  scheduled_end: '',
+  estimated_minutes: '',
   goal_id: '',
   habit_id: '',
   tags: '',
@@ -52,13 +55,19 @@ export default function TasksPage() {
     e.preventDefault()
     if (!form.title.trim()) return
     try {
+      const isAllDay = form.schedule_type === 'all_day'
+      const isTimed = form.schedule_type === 'timed'
+
       await createTask({
         title: form.title,
         description: form.description || null,
         priority: form.priority,
         status: form.status,
-        due_date: form.due_date || null,
-        scheduled_at: form.scheduled_at || null,
+        due_date: isAllDay ? (form.due_date || null) : null,
+        scheduled_at: isTimed ? (form.scheduled_at || null) : null,
+        scheduled_end: isTimed ? (form.scheduled_end || null) : null,
+        is_all_day: isAllDay,
+        estimated_minutes: form.estimated_minutes ? Number(form.estimated_minutes) : null,
         goal_id: form.goal_id ? Number(form.goal_id) : null,
         habit_id: form.habit_id ? Number(form.habit_id) : null,
         tags: form.tags
@@ -152,9 +161,58 @@ export default function TasksPage() {
               <option value="in_progress">In progress</option>
               <option value="done">Done</option>
             </select>
-            <input type="date" className="input-field" value={form.due_date} onChange={(e) => setForm({ ...form, due_date: e.target.value })} />
-            <input type="datetime-local" className="input-field" value={form.scheduled_at} onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })} />
+            <select className="input-field" value={form.schedule_type} onChange={(e) => setForm({ ...form, schedule_type: e.target.value })}>
+              <option value="none">No schedule</option>
+              <option value="all_day">All-day (date only)</option>
+              <option value="timed">Specific time</option>
+            </select>
+            <input
+              type="number"
+              min="1"
+              max="1440"
+              className="input-field"
+              placeholder="Estimated minutes"
+              value={form.estimated_minutes}
+              onChange={(e) => setForm({ ...form, estimated_minutes: e.target.value })}
+            />
           </div>
+
+          {form.schedule_type === 'all_day' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Due on</label>
+                <input
+                  type="date"
+                  className="input-field"
+                  value={form.due_date}
+                  onChange={(e) => setForm({ ...form, due_date: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
+
+          {form.schedule_type === 'timed' && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Start at</label>
+                <input
+                  type="datetime-local"
+                  className="input-field"
+                  value={form.scheduled_at}
+                  onChange={(e) => setForm({ ...form, scheduled_at: e.target.value })}
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">End at</label>
+                <input
+                  type="datetime-local"
+                  className="input-field"
+                  value={form.scheduled_end}
+                  onChange={(e) => setForm({ ...form, scheduled_end: e.target.value })}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <select className="input-field" value={form.goal_id} onChange={(e) => setForm({ ...form, goal_id: e.target.value })}>
@@ -218,6 +276,8 @@ export default function TasksPage() {
                         <CalendarClock className="w-3 h-3" /> {task.scheduled_at.slice(0, 16).replace('T', ' ')}
                       </span>
                     )}
+                    {(task.spent_minutes || 0) > 0 && <span className="badge">Spent: {task.spent_minutes}m</span>}
+                    {task.estimated_minutes && <span className="badge">Est: {task.estimated_minutes}m</span>}
                     {(task.tags || []).map((tag) => <span key={tag} className="badge">#{tag}</span>)}
                   </div>
                 </div>

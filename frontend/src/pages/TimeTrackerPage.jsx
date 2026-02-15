@@ -21,6 +21,7 @@ import {
   getOptimalWorkTimes,
   getAttentionResidue,
   getHabits,
+  getTasks,
   suggestDopamine,
   updateDopamineEvent,
 } from '../api'
@@ -79,6 +80,8 @@ export default function TimeTrackerPage() {
   const [stopForm, setStopForm] = useState({ mood: 5, energy: 5, productivity: 5 })
   const [habits, setHabits] = useState([])
   const [selectedHabitId, setSelectedHabitId] = useState('')
+  const [tasks, setTasks] = useState([])
+  const [selectedTaskId, setSelectedTaskId] = useState('')
   const [dopamineSuggestion, setDopamineSuggestion] = useState(null)
   const [breakSecondsLeft, setBreakSecondsLeft] = useState(0)
   const [shownLongSessionMilestones, setShownLongSessionMilestones] = useState({
@@ -92,13 +95,14 @@ export default function TimeTrackerPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [aRes, sRes, dRes, oRes, rRes, hRes] = await Promise.allSettled([
+      const [aRes, sRes, dRes, oRes, rRes, hRes, tRes] = await Promise.allSettled([
         getActiveContext(),
         getContextSummary(),
         getDeepWorkBlocks(),
         getOptimalWorkTimes(),
         getAttentionResidue(),
         getHabits(),
+        getTasks({ status: 'all' }),
       ])
 
       if (aRes.status === 'fulfilled') {
@@ -116,6 +120,10 @@ export default function TimeTrackerPage() {
       if (oRes.status === 'fulfilled') setOptimalTimes(oRes.value.data)
       if (rRes.status === 'fulfilled') setResidue(rRes.value.data)
       if (hRes.status === 'fulfilled') setHabits(hRes.value.data || [])
+      if (tRes.status === 'fulfilled') {
+        const openTasks = (tRes.value.data || []).filter((t) => t.status !== 'done')
+        setTasks(openTasks)
+      }
     } finally {
       setLoading(false)
     }
@@ -214,11 +222,13 @@ export default function TimeTrackerPage() {
         task_complexity: complexity,
       }
       if (selectedHabitId) payload.habit_id = Number(selectedHabitId)
+      if (selectedTaskId) payload.task_id = Number(selectedTaskId)
       const res = await startContext(payload)
       setActive(res.data)
       setElapsedSeconds(0)
       setContextName('')
       setSelectedHabitId('')
+      setSelectedTaskId('')
     } catch {}
   }
 
@@ -546,6 +556,20 @@ export default function TimeTrackerPage() {
                       <option key={h.id} value={h.id}>
                         {h.name}
                         {h.goal_title ? ` — ${h.goal_title}` : ''}
+                      </option>
+                    ))}
+                  </select>
+
+                  <select
+                    value={selectedTaskId}
+                    onChange={(e) => setSelectedTaskId(e.target.value)}
+                    className="input-field w-full"
+                  >
+                    <option value="">No task link</option>
+                    {tasks.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.title}
+                        {t.priority ? ` · ${t.priority}` : ''}
                       </option>
                     ))}
                   </select>

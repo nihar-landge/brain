@@ -72,6 +72,20 @@ def _migrate_tables():
             )
             conn.commit()
 
+        if "task_id" not in context_cols:
+            conn.execute(
+                text(
+                    "ALTER TABLE context_logs ADD COLUMN task_id INTEGER REFERENCES tasks(id) ON DELETE SET NULL"
+                )
+            )
+            conn.commit()
+
+        if "google_event_id" not in context_cols:
+            conn.execute(
+                text("ALTER TABLE context_logs ADD COLUMN google_event_id VARCHAR(255)")
+            )
+            conn.commit()
+
         # Migration 2: Rename related_goal_id → goal_id on habits (if old column exists)
         habit_cols = {c["name"] for c in inspector.get_columns("habits")}
         if "related_goal_id" in habit_cols and "goal_id" not in habit_cols:
@@ -84,3 +98,38 @@ def _migrate_tables():
             conn.execute(text("UPDATE habits SET goal_id = related_goal_id"))
             conn.commit()
             # Note: Can't DROP old column in SQLite < 3.35, but it's harmless to leave it
+
+        # Migration 3: Add new task columns to existing tasks table
+        table_names = set(inspector.get_table_names())
+        if "tasks" in table_names:
+            task_cols = {c["name"] for c in inspector.get_columns("tasks")}
+
+            if "scheduled_end" not in task_cols:
+                conn.execute(
+                    text("ALTER TABLE tasks ADD COLUMN scheduled_end DATETIME")
+                )
+                conn.commit()
+
+            if "is_all_day" not in task_cols:
+                conn.execute(
+                    text("ALTER TABLE tasks ADD COLUMN is_all_day BOOLEAN DEFAULT 0")
+                )
+                conn.commit()
+
+            if "estimated_minutes" not in task_cols:
+                conn.execute(
+                    text("ALTER TABLE tasks ADD COLUMN estimated_minutes INTEGER")
+                )
+                conn.commit()
+
+            if "spent_minutes" not in task_cols:
+                conn.execute(
+                    text("ALTER TABLE tasks ADD COLUMN spent_minutes INTEGER DEFAULT 0")
+                )
+                conn.commit()
+
+            if "google_event_id" not in task_cols:
+                conn.execute(
+                    text("ALTER TABLE tasks ADD COLUMN google_event_id VARCHAR(255)")
+                )
+                conn.commit()

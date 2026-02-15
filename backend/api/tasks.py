@@ -14,6 +14,7 @@ from utils.database import get_db
 from models.dopamine import Task
 from models.goals import Goal
 from models.habits import Habit
+from services.google_calendar_service import google_calendar_service
 
 router = APIRouter()
 
@@ -25,6 +26,9 @@ class TaskCreate(BaseModel):
     priority: str = Field("medium", pattern="^(low|medium|high|critical)$")
     due_date: Optional[str] = None  # YYYY-MM-DD
     scheduled_at: Optional[str] = None  # YYYY-MM-DDTHH:MM
+    scheduled_end: Optional[str] = None
+    is_all_day: bool = False
+    estimated_minutes: Optional[int] = Field(None, ge=1, le=1440)
     goal_id: Optional[int] = None
     habit_id: Optional[int] = None
     tags: Optional[List[str]] = None
@@ -37,6 +41,10 @@ class TaskUpdate(BaseModel):
     priority: Optional[str] = Field(None, pattern="^(low|medium|high|critical)$")
     due_date: Optional[str] = None
     scheduled_at: Optional[str] = None
+    scheduled_end: Optional[str] = None
+    is_all_day: Optional[bool] = None
+    estimated_minutes: Optional[int] = Field(None, ge=1, le=1440)
+    spent_minutes: Optional[int] = Field(None, ge=0)
     goal_id: Optional[int] = None
     habit_id: Optional[int] = None
     tags: Optional[List[str]] = None
@@ -82,6 +90,10 @@ async def create_task(data: TaskCreate, db: Session = Depends(get_db)):
         priority=data.priority,
         due_date=_parse_date(data.due_date),
         scheduled_at=_parse_datetime(data.scheduled_at),
+        scheduled_end=_parse_datetime(data.scheduled_end),
+        is_all_day=data.is_all_day,
+        estimated_minutes=data.estimated_minutes,
+        spent_minutes=0,
         goal_id=data.goal_id,
         habit_id=data.habit_id,
         tags=data.tags,
@@ -89,6 +101,13 @@ async def create_task(data: TaskCreate, db: Session = Depends(get_db)):
     db.add(task)
     db.commit()
     db.refresh(task)
+
+    # Auto-sync to Google Calendar if connected
+    try:
+        await google_calendar_service.upsert_task_event(db, task, user_id=1)
+    except Exception:
+        pass
+
     return {"id": task.id, "status": "success", "message": "Task created"}
 
 
@@ -135,11 +154,16 @@ async def get_tasks(
             "priority": t.priority,
             "due_date": str(t.due_date) if t.due_date else None,
             "scheduled_at": str(t.scheduled_at) if t.scheduled_at else None,
+            "scheduled_end": str(t.scheduled_end) if t.scheduled_end else None,
+            "is_all_day": t.is_all_day,
+            "estimated_minutes": t.estimated_minutes,
+            "spent_minutes": t.spent_minutes or 0,
             "goal_id": t.goal_id,
             "goal_title": goal_map.get(t.goal_id),
             "habit_id": t.habit_id,
             "habit_name": habit_map.get(t.habit_id),
             "tags": t.tags or [],
+            "google_event_id": t.google_event_id,
             "created_at": str(t.created_at),
             "updated_at": str(t.updated_at),
         }
@@ -161,9 +185,14 @@ async def get_task(task_id: int, db: Session = Depends(get_db)):
         "priority": task.priority,
         "due_date": str(task.due_date) if task.due_date else None,
         "scheduled_at": str(task.scheduled_at) if task.scheduled_at else None,
+        "scheduled_end": str(task.scheduled_end) if task.scheduled_end else None,
+        "is_all_day": task.is_all_day,
+        "estimated_minutes": task.estimated_minutes,
+        "spent_minutes": task.spent_minutes or 0,
         "goal_id": task.goal_id,
         "habit_id": task.habit_id,
         "tags": task.tags or [],
+        "google_event_id": task.google_event_id,
     }
 
 
@@ -184,11 +213,20 @@ async def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(g
             task.due_date = _parse_date(value)
         elif key == "scheduled_at":
             task.scheduled_at = _parse_datetime(value)
+        elif key == "scheduled_end":
+            task.scheduled_end = _parse_datetime(value)
         else:
             setattr(task, key, value)
 
     task.updated_at = datetime.utcnow()
     db.commit()
+
+    # Auto-sync updates to Google Calendar if connected
+    try:
+        await google_calendar_service.upsert_task_event(db, task, user_id=1)
+    except Exception:
+        pass
+
     return {"status": "success", "message": "Task updated"}
 
 
@@ -197,6 +235,17 @@ async def delete_task(task_id: int, db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
+
+    # If linked to Google Calendar event, try deleting remotely first
+    if task.google_event_id:
+        try:
+            service, integration = google_calendar_service._get_service(db, user_id=1)
+            if service and integration and integration.calendar_id:
+                service.events().delete(
+                    calendarId=integration.calendar_id, eventId=task.google_event_id
+                ).execute()
+        except Exception:
+            pass
 
     db.delete(task)
     db.commit()

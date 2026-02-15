@@ -126,6 +126,18 @@ export const getTask = (id) => api.get(`/tasks/${id}`)
 export const updateTask = (id, data) => api.put(`/tasks/${id}`, data)
 export const deleteTask = (id) => api.delete(`/tasks/${id}`)
 
+// ======================== CALENDAR ========================
+
+export const getCalendarEvents = (params = {}) => api.get('/calendar/events', { params })
+export const getCalendarTimezone = () => api.get('/calendar/timezone')
+export const updateCalendarTimezone = (timezone) => api.put('/calendar/timezone', { timezone })
+export const getGoogleCalendarStatus = () => api.get('/calendar/google/status')
+export const getGoogleCalendarAuthUrl = () => api.get('/calendar/google/auth-url')
+export const connectGoogleCalendar = (code, state = null) =>
+    api.get('/calendar/google/callback', { params: state ? { code, state } : { code } })
+export const disconnectGoogleCalendar = () => api.post('/calendar/google/disconnect')
+export const syncGoogleCalendar = () => api.post('/calendar/google/sync')
+
 // ======================== MULTI-AGENT ========================
 
 export const getAgents = () => api.get('/agents/agents')

@@ -1,6 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import { Download, Upload, HardDrive, RefreshCw, Trash2, CheckCircle, Info, X, Brain } from 'lucide-react'
-import { getStats, exportData, importData, createBackup, listBackups, clearChatHistory, retrainModels, getModelPerformance } from '../api'
+import {
+    getStats,
+    exportData,
+    importData,
+    createBackup,
+    listBackups,
+    clearChatHistory,
+    retrainModels,
+    getModelPerformance,
+    getCalendarTimezone,
+    updateCalendarTimezone,
+    getGoogleCalendarStatus,
+    getGoogleCalendarAuthUrl,
+    disconnectGoogleCalendar,
+    syncGoogleCalendar,
+} from '../api'
 import { useTheme } from '../ThemeContext'
 
 export default function SettingsPage() {
@@ -10,7 +25,20 @@ export default function SettingsPage() {
     const [backups, setBackups] = useState([])
     const [loading, setLoading] = useState({ export: false, import: false, backup: false, retrain: false, clear: false })
     const [toast, setToast] = useState(null)
+    const [timezone, setTimezone] = useState('UTC')
+    const [calendarStatus, setCalendarStatus] = useState(null)
     const toastTimerRef = useRef(null)
+
+    const timezoneOptions = [
+        'UTC',
+        'Asia/Kolkata',
+        'Europe/London',
+        'Europe/Berlin',
+        'America/New_York',
+        'America/Los_Angeles',
+        'Asia/Singapore',
+        'Australia/Sydney',
+    ]
 
     const showToast = (msg, type = 'info') => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -22,7 +50,49 @@ export default function SettingsPage() {
         getStats().then(r => setSysStats(r.data)).catch(() => {})
         getModelPerformance().then(r => setModels(r.data)).catch(() => {})
         listBackups().then(r => setBackups(r.data.backups || [])).catch(() => {})
+        getCalendarTimezone().then(r => setTimezone(r.data.timezone || 'UTC')).catch(() => {})
+        getGoogleCalendarStatus().then(r => setCalendarStatus(r.data)).catch(() => {})
     }, [])
+
+    const handleTimezoneSave = async () => {
+        try {
+            await updateCalendarTimezone(timezone)
+            showToast('Timezone updated', 'success')
+        } catch {
+            showToast('Failed to update timezone', 'error')
+        }
+    }
+
+    const handleGoogleConnect = async () => {
+        try {
+            const { data } = await getGoogleCalendarAuthUrl()
+            if (!data?.auth_url) throw new Error('No auth URL')
+            window.open(data.auth_url, '_blank', 'noopener,noreferrer')
+            showToast('Complete Google auth, then click Sync now', 'info')
+        } catch {
+            showToast('Google Calendar not configured on server', 'error')
+        }
+    }
+
+    const handleGoogleDisconnect = async () => {
+        try {
+            await disconnectGoogleCalendar()
+            setCalendarStatus((prev) => prev ? { ...prev, connected: false, calendar_id: null } : prev)
+            showToast('Google Calendar disconnected', 'success')
+        } catch {
+            showToast('Failed to disconnect Google Calendar', 'error')
+        }
+    }
+
+    const handleGoogleSync = async () => {
+        try {
+            const { data } = await syncGoogleCalendar()
+            showToast(`Synced ${data.synced_tasks} tasks, ${data.synced_sessions} sessions`, 'success')
+            getGoogleCalendarStatus().then(r => setCalendarStatus(r.data)).catch(() => {})
+        } catch {
+            showToast('Google sync failed', 'error')
+        }
+    }
 
     const handleExport = async () => {
         setLoading(l => ({ ...l, export: true }))
@@ -165,6 +235,32 @@ export default function SettingsPage() {
                                 </label>
                             ))}
                         </div>
+                    </div>
+
+                    <div>
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Timezone</label>
+                        <div className="flex flex-col sm:flex-row gap-2">
+                            <select className="input-field" value={timezone} onChange={e => setTimezone(e.target.value)}>
+                                {timezoneOptions.map(tz => (
+                                    <option key={tz} value={tz}>{tz}</option>
+                                ))}
+                            </select>
+                            <button className="btn-secondary" onClick={handleTimezoneSave}>Save</button>
+                        </div>
+                    </div>
+
+                    <div className="pt-1">
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Google Calendar (Brain Calendar)</label>
+                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                            <button className="btn-secondary" onClick={handleGoogleConnect}>Connect</button>
+                            <button className="btn-secondary" onClick={handleGoogleSync}>Sync now</button>
+                            <button className="btn-ghost" onClick={handleGoogleDisconnect}>Disconnect</button>
+                        </div>
+                        <p className="text-xs text-gray-500">
+                            {calendarStatus?.connected
+                                ? `Connected · ${calendarStatus.calendar_id || 'Brain Calendar'}`
+                                : 'Not connected'}
+                        </p>
                     </div>
 
                     {/* Remaining preferences — Coming Soon */}

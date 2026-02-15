@@ -29,6 +29,7 @@ class ContextSwitchingService:
         context_type: str = "deep_work",
         task_complexity: Optional[int] = None,
         habit_id: Optional[int] = None,
+        task_id: Optional[int] = None,
     ) -> ContextLog:
         """
         Start a new context/task timer.
@@ -46,6 +47,7 @@ class ContextSwitchingService:
             started_at=datetime.utcnow(),
             task_complexity=task_complexity,
             habit_id=habit_id,
+            task_id=task_id,
             previous_context_id=active.id if active else None,
         )
         db.add(new_ctx)
@@ -101,6 +103,21 @@ class ContextSwitchingService:
             ctx.task_complexity, ctx.duration_minutes, ctx.is_interruption
         )
 
+        # If linked to a task, accumulate spent minutes (auto-complete intentionally OFF)
+        if ctx.task_id and ctx.duration_minutes:
+            from models.dopamine import Task
+
+            task = (
+                db.query(Task)
+                .filter(Task.id == ctx.task_id, Task.user_id == user_id)
+                .first()
+            )
+            if task:
+                task.spent_minutes = (task.spent_minutes or 0) + (
+                    ctx.duration_minutes or 0
+                )
+                task.updated_at = datetime.utcnow()
+
         db.commit()
         db.refresh(ctx)
 
@@ -154,6 +171,7 @@ class ContextSwitchingService:
             "task_complexity": active.task_complexity,
             "is_interruption": active.is_interruption,
             "habit_id": active.habit_id,
+            "task_id": active.task_id,
         }
 
         # Include habit/goal info if linked
@@ -169,6 +187,13 @@ class ContextSwitchingService:
                     goal = db.query(Goal).filter(Goal.id == habit.goal_id).first()
                     if goal:
                         result["goal_title"] = goal.goal_title
+
+        if active.task_id:
+            from models.dopamine import Task
+
+            task = db.query(Task).filter(Task.id == active.task_id).first()
+            if task:
+                result["task_title"] = task.title
 
         return result
 

@@ -17,6 +17,11 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/database.db")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./data/chromadb")
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "")  # Empty = auth disabled (dev mode)
 
+# Google Calendar OAuth
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+
 # ======================== GEMINI CONFIGURATION ========================
 
 # Embedding model: gemini-embedding-001 (user-specified, replaces text-embedding-004)

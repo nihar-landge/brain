@@ -35,6 +35,10 @@ class ContextLog(Base):
     habit_id = Column(
         Integer, ForeignKey("habits.id", ondelete="SET NULL"), nullable=True
     )
+    task_id = Column(
+        Integer, ForeignKey("tasks.id", ondelete="SET NULL"), nullable=True
+    )
+    google_event_id = Column(String(255), nullable=True)
 
     # Context info
     context_name = Column(String(200), nullable=True)
