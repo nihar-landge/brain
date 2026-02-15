@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { Send, Sparkles, Loader2, Trash2, Users, ChevronDown, Brain, Heart, TrendingUp, BarChart3 } from 'lucide-react'
+import { Send, Sparkles, Loader2, Trash2, Users, ChevronDown, Heart, TrendingUp, BarChart3 } from 'lucide-react'
 import { sendChatMessage, getChatHistory, clearChatHistory, singleAgentChat, multiAgentChat } from '../api'
 
 const quickPrompts = [
@@ -150,8 +150,8 @@ export default function ChatPage() {
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
                     <div>
-                        <h1 className="text-xl sm:text-2xl font-bold text-[var(--text-primary)]">Chat with AI</h1>
-                        <p className="text-sm text-[var(--text-muted)] mt-1 hidden sm:block">AI assistant with memory of your journal</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Chat with AI</h1>
+                        <p className="text-sm text-gray-500 mt-1 hidden sm:block">AI assistant with memory of your journal</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
@@ -159,28 +159,28 @@ export default function ChatPage() {
                     <div className="relative" ref={modeMenuRef}>
                         <button
                             onClick={() => setShowModeMenu(!showModeMenu)}
-                            className="flex items-center gap-2 px-3 py-2 text-sm border border-[var(--border-primary)] rounded-lg hover:bg-[var(--bg-secondary)] transition-colors"
+                            className="flex items-center gap-2 px-3 py-2 text-sm border border-gray-200 rounded-lg bg-white hover:bg-gray-100 transition-colors"
                         >
                             <ModeIcon className="w-4 h-4" />
                             <span className="hidden sm:inline">{currentMode.label}</span>
                             <ChevronDown className="w-3 h-3" />
                         </button>
                         {showModeMenu && (
-                            <div className="absolute right-0 top-full mt-1 w-52 bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg shadow-lg z-30 py-1">
+                            <div className="absolute right-0 top-full mt-1 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-30 py-1">
                                 {Object.entries(agentMeta).map(([key, meta]) => {
                                     const Icon = meta.icon
                                     return (
                                         <button
                                             key={key}
                                             onClick={() => { setMode(key); setShowModeMenu(false) }}
-                                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-[var(--bg-secondary)] transition-colors ${mode === key ? 'bg-[var(--bg-secondary)] font-medium' : ''}`}
+                                            className={`w-full flex items-center gap-3 px-4 py-2.5 text-sm text-left hover:bg-gray-100 transition-colors ${mode === key ? 'bg-gray-100 font-medium' : ''}`}
                                         >
                                             <div className={`w-6 h-6 ${meta.color} rounded-full flex items-center justify-center`}>
                                                 <Icon className="w-3 h-3 text-white" />
                                             </div>
                                             <div>
-                                                <div className="text-[var(--text-primary)]">{meta.label}</div>
-                                                <div className="text-[10px] text-[var(--text-muted)]">
+                                                <div className="text-gray-900">{meta.label}</div>
+                                                <div className="text-[10px] text-gray-500">
                                                     {key === 'standard' && 'General AI assistant'}
                                                     {key === 'therapist' && 'CBT/DBT therapeutic support'}
                                                     {key === 'coach' && 'Accountability & motivation'}
@@ -194,7 +194,7 @@ export default function ChatPage() {
                             </div>
                         )}
                     </div>
-                    <button onClick={handleClear} className="btn-ghost flex items-center gap-2 text-sm text-[var(--text-muted)]">
+                    <button onClick={handleClear} className="btn-ghost flex items-center gap-2 text-sm text-gray-500">
                         <Trash2 className="w-4 h-4" />
                         <span className="hidden sm:inline">Clear</span>
                     </button>
@@ -205,7 +205,7 @@ export default function ChatPage() {
             <div className="flex-1 overflow-y-auto space-y-4 pb-4">
                 {initialLoad ? (
                     <div className="flex items-center justify-center h-full">
-                        <Loader2 className="w-5 h-5 text-[var(--text-muted)] animate-spin" />
+                        <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
                     </div>
                 ) : messages.map((msg, i) => (
                     <div key={i}>
@@ -235,14 +235,14 @@ export default function ChatPage() {
                                         <div className="flex-1">
                                             {/* Agent label for non-standard messages */}
                                             {msg.agent && msg.agent !== 'standard' && (
-                                                <span className="text-xs font-medium text-[var(--text-muted)] mb-1 block">
+                                                <span className="text-xs font-medium text-gray-500 mb-1 block">
                                                     {agentMeta[msg.agent]?.label || 'AI'}
                                                     {msg.agent === 'multi' && ' (Synthesized)'}
                                                 </span>
                                             )}
-                                            <div className="bg-[var(--bg-secondary)] rounded-lg rounded-bl-sm p-4">
-                                                <p className="text-sm text-[var(--text-primary)] whitespace-pre-wrap">{msg.content}</p>
-                                                <span className="text-xs text-[var(--text-muted)] mt-2 block">{msg.time}</span>
+                                            <div className="bg-gray-100 rounded-lg rounded-bl-sm p-4">
+                                                <p className="text-sm text-gray-900 whitespace-pre-wrap">{msg.content}</p>
+                                                <span className="text-xs text-gray-500 mt-2 block">{msg.time}</span>
                                             </div>
 
                                             {/* Multi-agent perspectives */}
@@ -261,14 +261,14 @@ export default function ChatPage() {
                                                                 const pMeta = agentMeta[p.agent] || agentMeta.standard
                                                                 const PIcon = pMeta.icon
                                                                 return (
-                                                                    <div key={pi} className="border border-[var(--border-primary)] rounded-lg p-3">
+                                                                    <div key={pi} className="border border-gray-200 rounded-lg p-3 bg-white">
                                                                         <div className="flex items-center gap-2 mb-2">
                                                                             <div className={`w-5 h-5 ${pMeta.color} rounded-full flex items-center justify-center`}>
                                                                                 <PIcon className="w-3 h-3 text-white" />
                                                                             </div>
-                                                                            <span className="text-xs font-medium text-[var(--text-primary)]">{pMeta.label}</span>
+                                                                            <span className="text-xs font-medium text-gray-900">{pMeta.label}</span>
                                                                         </div>
-                                                                        <p className="text-xs text-[var(--text-secondary)] whitespace-pre-wrap">{p.response}</p>
+                                                                        <p className="text-xs text-gray-600 whitespace-pre-wrap">{p.response}</p>
                                                                     </div>
                                                                 )
                                                             })}
@@ -291,10 +291,10 @@ export default function ChatPage() {
                             <div className={`w-8 h-8 ${currentMode.color} rounded-full flex items-center justify-center flex-shrink-0`}>
                                 <ModeIcon className="w-4 h-4 text-white" />
                             </div>
-                            <div className="bg-[var(--bg-secondary)] rounded-lg rounded-bl-sm px-4 py-3 flex gap-1.5">
-                                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-2 h-2 bg-[var(--text-muted)] rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
+                            <div className="bg-gray-100 rounded-lg rounded-bl-sm px-4 py-3 flex gap-1.5">
+                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                                <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                             </div>
                         </div>
                     </div>
@@ -309,7 +309,7 @@ export default function ChatPage() {
                         key={i}
                         onClick={() => handleSend(prompt)}
                         disabled={loading}
-                        className="px-3 py-2 text-sm border border-[var(--border-primary)] rounded-full hover:bg-[var(--bg-secondary)] text-[var(--text-secondary)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-full hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         {prompt}
                     </button>
@@ -317,7 +317,7 @@ export default function ChatPage() {
             </div>
 
             {/* Input Area */}
-            <div className="flex gap-2 border-t border-[var(--border-primary)] pt-4">
+            <div className="flex gap-2 border-t border-gray-200 pt-4">
                 <textarea
                     value={input}
                     onChange={e => setInput(e.target.value)}

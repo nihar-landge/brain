@@ -28,6 +28,7 @@ class ContextSwitchingService:
         context_name: str,
         context_type: str = "deep_work",
         task_complexity: Optional[int] = None,
+        habit_id: Optional[int] = None,
     ) -> ContextLog:
         """
         Start a new context/task timer.
@@ -44,6 +45,7 @@ class ContextSwitchingService:
             context_type=context_type,
             started_at=datetime.utcnow(),
             task_complexity=task_complexity,
+            habit_id=habit_id,
             previous_context_id=active.id if active else None,
         )
         db.add(new_ctx)
@@ -143,7 +145,7 @@ class ContextSwitchingService:
             return None
 
         elapsed = int((datetime.utcnow() - active.started_at).total_seconds() / 60)
-        return {
+        result = {
             "id": active.id,
             "context_name": active.context_name,
             "context_type": active.context_type,
@@ -151,7 +153,24 @@ class ContextSwitchingService:
             "elapsed_minutes": elapsed,
             "task_complexity": active.task_complexity,
             "is_interruption": active.is_interruption,
+            "habit_id": active.habit_id,
         }
+
+        # Include habit/goal info if linked
+        if active.habit_id:
+            from models.habits import Habit
+            from models.goals import Goal
+
+            habit = db.query(Habit).filter(Habit.id == active.habit_id).first()
+            if habit:
+                result["habit_name"] = habit.habit_name
+                result["goal_id"] = habit.goal_id
+                if habit.goal_id:
+                    goal = db.query(Goal).filter(Goal.id == habit.goal_id).first()
+                    if goal:
+                        result["goal_title"] = goal.goal_title
+
+        return result
 
     # ======================== DEEP WORK DETECTION ========================
 

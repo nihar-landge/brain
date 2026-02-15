@@ -13,6 +13,7 @@ from sqlalchemy import func
 
 from utils.database import get_db
 from models.habits import Habit, HabitLog
+from models.goals import Goal
 
 router = APIRouter()
 
@@ -27,6 +28,7 @@ class HabitCreate(BaseModel):
     target_frequency: Optional[str] = "daily"
     target_days: Optional[List[int]] = None
     target_time: Optional[str] = None
+    goal_id: int  # Required — every habit must belong to a goal
 
 
 class HabitUpdate(BaseModel):
@@ -50,7 +52,12 @@ class HabitLogCreate(BaseModel):
 
 @router.post("", response_model=dict)
 async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
-    """Create a new habit."""
+    """Create a new habit linked to a goal."""
+    # Validate goal exists
+    goal = db.query(Goal).filter(Goal.id == habit.goal_id, Goal.user_id == 1).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+
     new_habit = Habit(
         user_id=1,
         habit_name=habit.habit_name,
@@ -59,6 +66,7 @@ async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
         target_frequency=habit.target_frequency,
         target_days=habit.target_days,
         start_date=datetime.now().date(),
+        goal_id=habit.goal_id,
     )
     db.add(new_habit)
     db.commit()
@@ -67,13 +75,25 @@ async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=List[dict])
-async def get_habits(status: str = "active", db: Session = Depends(get_db)):
-    """List habits."""
+async def get_habits(
+    status: str = "active", goal_id: Optional[int] = None, db: Session = Depends(get_db)
+):
+    """List habits, optionally filtered by goal."""
     query = db.query(Habit).filter(Habit.user_id == 1)
     if status != "all":
         query = query.filter(Habit.status == status)
+    if goal_id is not None:
+        query = query.filter(Habit.goal_id == goal_id)
 
     habits = query.order_by(Habit.created_at.desc()).all()
+
+    # Build goal name lookup
+    goal_ids = {h.goal_id for h in habits if h.goal_id}
+    goal_map = {}
+    if goal_ids:
+        goals = db.query(Goal).filter(Goal.id.in_(goal_ids)).all()
+        goal_map = {g.id: g.goal_title for g in goals}
+
     return [
         {
             "id": h.id,
@@ -85,6 +105,8 @@ async def get_habits(status: str = "active", db: Session = Depends(get_db)):
             "status": h.status,
             "start_date": str(h.start_date),
             "created_at": str(h.created_at),
+            "goal_id": h.goal_id,
+            "goal_title": goal_map.get(h.goal_id),
         }
         for h in habits
     ]
@@ -106,6 +128,7 @@ async def get_habit(habit_id: int, db: Session = Depends(get_db)):
         "target_days": habit.target_days,
         "status": habit.status,
         "start_date": str(habit.start_date),
+        "goal_id": habit.goal_id,
     }
 
 

@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 
 from utils.database import get_db
 from models.goals import Goal, GoalMilestone
+from models.habits import Habit
+from models.context import ContextLog
 
 router = APIRouter()
 
@@ -73,12 +75,26 @@ async def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[dict])
 async def get_goals(status: str = "active", db: Session = Depends(get_db)):
-    """Get user goals."""
+    """Get user goals with habit counts."""
     query = db.query(Goal).filter(Goal.user_id == 1)
     if status != "all":
         query = query.filter(Goal.status == status)
 
     goals = query.order_by(Goal.created_at.desc()).all()
+
+    # Get habit counts per goal
+    goal_ids = [g.id for g in goals]
+    habit_counts = {}
+    if goal_ids:
+        from sqlalchemy import func
+
+        counts = (
+            db.query(Habit.goal_id, func.count(Habit.id))
+            .filter(Habit.goal_id.in_(goal_ids), Habit.status == "active")
+            .group_by(Habit.goal_id)
+            .all()
+        )
+        habit_counts = dict(counts)
 
     return [
         {
@@ -92,6 +108,7 @@ async def get_goals(status: str = "active", db: Session = Depends(get_db)):
             "start_date": str(g.start_date),
             "target_date": str(g.target_date) if g.target_date else None,
             "created_at": str(g.created_at),
+            "habit_count": habit_counts.get(g.id, 0),
         }
         for g in goals
     ]
@@ -99,7 +116,7 @@ async def get_goals(status: str = "active", db: Session = Depends(get_db)):
 
 @router.get("/{goal_id}", response_model=dict)
 async def get_goal(goal_id: int, db: Session = Depends(get_db)):
-    """Get specific goal with milestones."""
+    """Get specific goal with milestones, habits, and recent sessions."""
     goal = db.query(Goal).get(goal_id)
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
@@ -110,6 +127,40 @@ async def get_goal(goal_id: int, db: Session = Depends(get_db)):
         .order_by(GoalMilestone.created_at)
         .all()
     )
+
+    # Get habits linked to this goal
+    habits = (
+        db.query(Habit)
+        .filter(Habit.goal_id == goal_id, Habit.status == "active")
+        .order_by(Habit.created_at)
+        .all()
+    )
+
+    # Get recent sessions (context logs) for each habit
+    habit_ids = [h.id for h in habits]
+    sessions_by_habit = {}
+    if habit_ids:
+        recent_sessions = (
+            db.query(ContextLog)
+            .filter(
+                ContextLog.habit_id.in_(habit_ids),
+                ContextLog.ended_at.isnot(None),
+            )
+            .order_by(ContextLog.started_at.desc())
+            .limit(50)
+            .all()
+        )
+        for s in recent_sessions:
+            sessions_by_habit.setdefault(s.habit_id, []).append(
+                {
+                    "id": s.id,
+                    "context_name": s.context_name,
+                    "started_at": str(s.started_at),
+                    "ended_at": str(s.ended_at) if s.ended_at else None,
+                    "duration_minutes": s.duration_minutes,
+                    "productivity_rating": s.productivity_rating,
+                }
+            )
 
     return {
         "id": goal.id,
@@ -130,6 +181,21 @@ async def get_goal(goal_id: int, db: Session = Depends(get_db)):
                 "target_date": str(m.target_date) if m.target_date else None,
             }
             for m in milestones
+        ],
+        "habits": [
+            {
+                "id": h.id,
+                "name": h.habit_name,
+                "description": h.habit_description,
+                "category": h.habit_category,
+                "frequency": h.target_frequency,
+                "sessions": sessions_by_habit.get(h.id, [])[:10],
+                "total_sessions": len(sessions_by_habit.get(h.id, [])),
+                "total_minutes": sum(
+                    s["duration_minutes"] or 0 for s in sessions_by_habit.get(h.id, [])
+                ),
+            }
+            for h in habits
         ],
     }
 
@@ -207,10 +273,16 @@ async def complete_milestone(
 
     # Update goal progress
     goal = db.query(Goal).get(goal_id)
-    all_milestones = db.query(GoalMilestone).filter(GoalMilestone.goal_id == goal_id).all()
+    all_milestones = (
+        db.query(GoalMilestone).filter(GoalMilestone.goal_id == goal_id).all()
+    )
     completed = sum(1 for m in all_milestones if m.completed)
     if all_milestones:
         goal.progress = int((completed / len(all_milestones)) * 100)
         db.commit()
 
-    return {"status": "success", "message": "Milestone completed", "goal_progress": goal.progress}
+    return {
+        "status": "success",
+        "message": "Milestone completed",
+        "goal_progress": goal.progress,
+    }

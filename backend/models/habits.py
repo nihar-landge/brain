@@ -26,7 +26,9 @@ class Habit(Base):
     __tablename__ = "habits"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     habit_name = Column(String(100), nullable=False)
     habit_description = Column(Text, nullable=True)
@@ -46,8 +48,8 @@ class Habit(Base):
     start_date = Column(Date, nullable=False)
     end_date = Column(Date, nullable=True)
 
-    # Relations
-    related_goal_id = Column(Integer, ForeignKey("goals.id", ondelete="SET NULL"), nullable=True)
+    # Relations — every habit must belong to a goal (Goal → Habit → Session hierarchy)
+    goal_id = Column(Integer, ForeignKey("goals.id", ondelete="CASCADE"), nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow)
 
@@ -56,9 +58,15 @@ class HabitLog(Base):
     __tablename__ = "habit_logs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    habit_id = Column(Integer, ForeignKey("habits.id", ondelete="CASCADE"), nullable=False)
-    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    journal_entry_id = Column(Integer, ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True)
+    habit_id = Column(
+        Integer, ForeignKey("habits.id", ondelete="CASCADE"), nullable=False
+    )
+    user_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    journal_entry_id = Column(
+        Integer, ForeignKey("journal_entries.id", ondelete="SET NULL"), nullable=True
+    )
 
     log_date = Column(Date, nullable=False)
     log_time = Column(Time, nullable=True)
@@ -66,8 +74,14 @@ class HabitLog(Base):
     completed = Column(Boolean, nullable=False)
 
     # Context
-    difficulty = Column(Integer, CheckConstraint("difficulty >= 1 AND difficulty <= 5"), nullable=True)
-    satisfaction = Column(Integer, CheckConstraint("satisfaction >= 1 AND satisfaction <= 5"), nullable=True)
+    difficulty = Column(
+        Integer, CheckConstraint("difficulty >= 1 AND difficulty <= 5"), nullable=True
+    )
+    satisfaction = Column(
+        Integer,
+        CheckConstraint("satisfaction >= 1 AND satisfaction <= 5"),
+        nullable=True,
+    )
     notes = Column(Text, nullable=True)
 
     # Why if not completed

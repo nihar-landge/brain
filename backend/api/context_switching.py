@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from utils.database import get_db
 from services.context_switching_service import context_switching_service
+from models.habits import Habit
 
 router = APIRouter()
 
@@ -22,6 +23,7 @@ class StartContextRequest(BaseModel):
     context_name: str = Field(..., min_length=1, max_length=200)
     context_type: str = "deep_work"  # deep_work, communication, admin, personal, coding, writing, studying
     task_complexity: Optional[int] = Field(None, ge=1, le=10)
+    habit_id: Optional[int] = None  # Link session to a habit (Goal → Habit → Session)
 
 
 class EndContextRequest(BaseModel):
@@ -41,20 +43,37 @@ class InterruptionRequest(BaseModel):
 @router.post("/start", response_model=dict)
 async def start_context(data: StartContextRequest, db: Session = Depends(get_db)):
     """Start a new context/task timer. Automatically ends previous active context."""
+    # Validate habit exists if provided
+    habit = None
+    if data.habit_id:
+        habit = (
+            db.query(Habit)
+            .filter(Habit.id == data.habit_id, Habit.user_id == 1)
+            .first()
+        )
+        if not habit:
+            raise HTTPException(status_code=404, detail="Habit not found")
+
     ctx = context_switching_service.start_context(
         db,
         user_id=1,
         context_name=data.context_name,
         context_type=data.context_type,
         task_complexity=data.task_complexity,
+        habit_id=data.habit_id,
     )
-    return {
+    result = {
         "id": ctx.id,
         "context_name": ctx.context_name,
         "context_type": ctx.context_type,
         "started_at": str(ctx.started_at),
         "status": "started",
+        "habit_id": ctx.habit_id,
     }
+    if habit:
+        result["habit_name"] = habit.habit_name
+        result["goal_id"] = habit.goal_id
+    return result
 
 
 @router.post("/stop", response_model=dict)

@@ -31,6 +31,11 @@ class ContextLog(Base):
         Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
     )
 
+    # Hierarchy: Goal → Habit → Session (this context log is the session)
+    habit_id = Column(
+        Integer, ForeignKey("habits.id", ondelete="SET NULL"), nullable=True
+    )
+
     # Context info
     context_name = Column(String(200), nullable=True)
     context_type = Column(

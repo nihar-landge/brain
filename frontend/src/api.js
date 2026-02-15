@@ -54,7 +54,11 @@ export const deleteGoal = (id) => api.delete(`/goals/${id}`)
 // ======================== HABITS ========================
 
 export const createHabit = (data) => api.post('/habits', data)
-export const getHabits = (status = 'active') => api.get('/habits', { params: { status } })
+export const getHabits = (status = 'active', goalId = null) => {
+    const params = { status }
+    if (goalId) params.goal_id = goalId
+    return api.get('/habits', { params })
+}
 export const getHabit = (id) => api.get(`/habits/${id}`)
 export const updateHabit = (id, data) => api.put(`/habits/${id}`, data)
 export const deleteHabit = (id) => api.delete(`/habits/${id}`)

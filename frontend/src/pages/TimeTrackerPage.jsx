@@ -1,12 +1,47 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { Play, Square, Pause, Clock, Brain, Zap, AlertCircle, BarChart3 } from 'lucide-react'
-import { startContext, stopContext, getActiveContext, logInterruption, getContextSummary, getDeepWorkBlocks, getOptimalWorkTimes, getAttentionResidue } from '../api'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts'
+import {
+  Play,
+  Square,
+  Clock,
+  Brain,
+  Zap,
+  AlertCircle,
+  BarChart3,
+  Target,
+  Sparkles,
+  Activity,
+} from 'lucide-react'
+import {
+  startContext,
+  stopContext,
+  getActiveContext,
+  logInterruption,
+  getContextSummary,
+  getDeepWorkBlocks,
+  getOptimalWorkTimes,
+  getAttentionResidue,
+  getHabits,
+} from '../api'
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
-const CONTEXT_TYPES = ['deep_work', 'coding', 'writing', 'studying', 'communication', 'admin', 'personal']
+const CONTEXT_TYPES = [
+  'deep_work',
+  'coding',
+  'writing',
+  'studying',
+  'communication',
+  'admin',
+  'personal',
+]
 
 function useChartColors() {
-  return { primary: '#4A90E2', secondary: '#666666', muted: '#cccccc', success: '#2ecc71', error: '#e74c3c' }
+  return {
+    primary: '#4A90E2',
+    secondary: '#666666',
+    muted: '#cccccc',
+    success: '#2ecc71',
+    error: '#e74c3c',
+  }
 }
 
 export default function TimeTrackerPage() {
@@ -22,69 +57,102 @@ export default function TimeTrackerPage() {
   const [residue, setResidue] = useState(null)
   const [loading, setLoading] = useState(true)
   const [stopForm, setStopForm] = useState({ mood: 5, energy: 5, productivity: 5 })
+  const [habits, setHabits] = useState([])
+  const [selectedHabitId, setSelectedHabitId] = useState('')
   const timerRef = useRef(null)
   const colors = useChartColors()
 
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [aRes, sRes, dRes, oRes, rRes] = await Promise.allSettled([
-        getActiveContext(), getContextSummary(), getDeepWorkBlocks(), getOptimalWorkTimes(), getAttentionResidue()
+      const [aRes, sRes, dRes, oRes, rRes, hRes] = await Promise.allSettled([
+        getActiveContext(),
+        getContextSummary(),
+        getDeepWorkBlocks(),
+        getOptimalWorkTimes(),
+        getAttentionResidue(),
+        getHabits(),
       ])
+
       if (aRes.status === 'fulfilled') {
         const data = aRes.value.data
-        if (data.active) { setActive(data); setElapsed(data.elapsed_minutes || 0) }
-        else { setActive(null); setElapsed(0) }
+        if (data.active) {
+          setActive(data)
+          setElapsed(data.elapsed_minutes || 0)
+        } else {
+          setActive(null)
+          setElapsed(0)
+        }
       }
       if (sRes.status === 'fulfilled') setSummary(sRes.value.data)
       if (dRes.status === 'fulfilled') setDeepWork(dRes.value.data)
       if (oRes.status === 'fulfilled') setOptimalTimes(oRes.value.data)
       if (rRes.status === 'fulfilled') setResidue(rRes.value.data)
-    } catch { } finally { setLoading(false) }
+      if (hRes.status === 'fulfilled') setHabits(hRes.value.data || [])
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
-  useEffect(() => { loadData() }, [loadData])
+  useEffect(() => {
+    loadData()
+  }, [loadData])
 
-  // Timer tick
   useEffect(() => {
     if (active) {
-      timerRef.current = setInterval(() => setElapsed(prev => prev + 1), 60000)
+      timerRef.current = setInterval(() => setElapsed((prev) => prev + 1), 60000)
       return () => clearInterval(timerRef.current)
-    } else {
-      clearInterval(timerRef.current)
     }
+    clearInterval(timerRef.current)
   }, [active])
 
   const handleStart = async () => {
     if (!contextName.trim()) return
     try {
-      const res = await startContext({ context_name: contextName, context_type: contextType, task_complexity: complexity })
+      const payload = {
+        context_name: contextName,
+        context_type: contextType,
+        task_complexity: complexity,
+      }
+      if (selectedHabitId) payload.habit_id = Number(selectedHabitId)
+      const res = await startContext(payload)
       setActive(res.data)
       setElapsed(0)
       setContextName('')
-    } catch { }
+      setSelectedHabitId('')
+    } catch {}
   }
 
   const handleStop = async () => {
     try {
-      await stopContext({ mood_after: stopForm.mood, energy_after: stopForm.energy, productivity_rating: stopForm.productivity })
+      await stopContext({
+        mood_after: stopForm.mood,
+        energy_after: stopForm.energy,
+        productivity_rating: stopForm.productivity,
+      })
       setActive(null)
       setElapsed(0)
       loadData()
-    } catch { }
+    } catch {}
   }
 
   const handleInterrupt = async () => {
     try {
       await logInterruption('manual')
       loadData()
-    } catch { }
+    } catch {}
   }
 
   const formatTime = (mins) => {
     const h = Math.floor(mins / 60)
     const m = mins % 60
     return h > 0 ? `${h}h ${m}m` : `${m}m`
+  }
+
+  const formatClock = (mins) => {
+    const h = String(Math.floor(mins / 60)).padStart(2, '0')
+    const m = String(mins % 60).padStart(2, '0')
+    return `${h}:${m}:00`
   }
 
   const tabs = [
@@ -94,52 +162,144 @@ export default function TimeTrackerPage() {
     { id: 'insights', label: 'Insights', icon: Zap },
   ]
 
-  if (loading) return <div className="flex items-center justify-center h-64"><div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" /></div>
+  const focusProgress = Math.min(100, Math.round((elapsed / 90) * 100))
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="w-5 h-5 border-2 border-gray-300 border-t-black rounded-full animate-spin" />
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Time Tracker</h1>
-        <p className="text-sm text-gray-500 mt-1">Track context switches, deep work, and cognitive load</p>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Time Tracker</h1>
+          <p className="text-sm text-gray-500 mt-1">Track context switches, deep work, and cognitive load</p>
+        </div>
+        <div className="hidden sm:flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border border-gray-200 bg-gray-100 text-gray-600">
+          <Sparkles className="w-3.5 h-3.5 text-accent" />
+          Focus mode
+        </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 border-b border-gray-200">
-        {tabs.map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === t.id ? 'border-black text-black' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+      <div className="flex gap-1 p-1 rounded-xl border border-gray-200 bg-gray-100/70 w-fit">
+        {tabs.map((t) => (
+          <button
+            key={t.id}
+            onClick={() => setTab(t.id)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+              tab === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+            }`}
+          >
             <t.icon className="w-4 h-4" /> {t.label}
           </button>
         ))}
       </div>
 
-      {/* Timer Tab */}
       {tab === 'timer' && (
-        <div className="space-y-4">
+        <div className="space-y-4 animate-in">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="card p-3 sm:p-4">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Today Focus</p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900 mt-1">{formatTime(summary?.deep_work_minutes || 0)}</p>
+            </div>
+            <div className="card p-3 sm:p-4">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Sessions</p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900 mt-1">{summary?.total_contexts || 0}</p>
+            </div>
+            <div className="card p-3 sm:p-4">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Interruptions</p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900 mt-1">{summary?.interruptions || 0}</p>
+            </div>
+            <div className="card p-3 sm:p-4">
+              <p className="text-[11px] text-gray-500 uppercase tracking-wide">Avg Load</p>
+              <p className="text-lg sm:text-xl font-semibold text-gray-900 mt-1">
+                {summary?.avg_cognitive_load ? `${summary.avg_cognitive_load}/10` : '--'}
+              </p>
+            </div>
+          </div>
+
           {active ? (
-            /* Active Timer */
-            <div className="card p-6 border-2 border-accent">
-              <div className="text-center">
-                <p className="text-xs text-accent font-medium uppercase tracking-wide mb-1">Currently Working On</p>
+            <div className="card p-5 sm:p-6 border-2 border-accent overflow-hidden relative">
+              <div
+                className="absolute inset-0 opacity-60"
+                style={{
+                  background:
+                    'radial-gradient(100% 120% at 100% 0%, rgba(74, 144, 226, 0.14) 0%, rgba(74, 144, 226, 0.03) 35%, transparent 70%)',
+                }}
+              />
+
+              <div className="relative z-10 text-center">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium uppercase tracking-wide bg-accent/10 text-accent mb-2">
+                  <span className="w-2 h-2 rounded-full bg-accent animate-pulse" />
+                  Live session
+                </div>
                 <h2 className="text-xl font-bold text-gray-900">{active.context_name}</h2>
                 <span className="text-xs text-gray-500">{active.context_type?.replace('_', ' ')}</span>
-                <div className="text-4xl font-mono font-bold text-gray-900 mt-4">{formatTime(elapsed)}</div>
+                {active.habit_name && (
+                  <div className="flex items-center justify-center gap-1.5 mt-1 text-xs text-gray-500">
+                    <Target className="w-3 h-3" />
+                    <span>{active.habit_name}</span>
+                    {active.goal_title && <span className="text-gray-400">&middot; {active.goal_title}</span>}
+                  </div>
+                )}
+
+                <div className="mt-5 flex justify-center">
+                  <div
+                    className="w-44 h-44 rounded-full p-2"
+                    style={{
+                      background: `conic-gradient(var(--color-accent) ${focusProgress}%, var(--color-gray-200) ${focusProgress}% 100%)`,
+                    }}
+                  >
+                    <div className="w-full h-full rounded-full bg-white border border-gray-200 flex flex-col items-center justify-center">
+                      <p className="text-[10px] uppercase tracking-wide text-gray-500">Flow Target 90m</p>
+                      <div className="text-2xl sm:text-3xl font-mono font-bold text-gray-900 mt-1">{formatClock(elapsed)}</div>
+                      <p className="text-xs text-gray-500 mt-1">{focusProgress}% milestone</p>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="mt-6 space-y-3">
+
+              <div className="mt-6 space-y-3 relative z-10">
                 <div>
                   <label className="text-xs text-gray-500">Mood After ({stopForm.mood})</label>
-                  <input type="range" min="1" max="10" value={stopForm.mood} onChange={e => setStopForm({ ...stopForm, mood: Number(e.target.value) })} className="w-full" />
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={stopForm.mood}
+                    onChange={(e) => setStopForm({ ...stopForm, mood: Number(e.target.value) })}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">Energy After ({stopForm.energy})</label>
-                  <input type="range" min="1" max="10" value={stopForm.energy} onChange={e => setStopForm({ ...stopForm, energy: Number(e.target.value) })} className="w-full" />
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={stopForm.energy}
+                    onChange={(e) => setStopForm({ ...stopForm, energy: Number(e.target.value) })}
+                    className="w-full"
+                  />
                 </div>
                 <div>
                   <label className="text-xs text-gray-500">Productivity ({stopForm.productivity})</label>
-                  <input type="range" min="1" max="10" value={stopForm.productivity} onChange={e => setStopForm({ ...stopForm, productivity: Number(e.target.value) })} className="w-full" />
+                  <input
+                    type="range"
+                    min="1"
+                    max="10"
+                    value={stopForm.productivity}
+                    onChange={(e) => setStopForm({ ...stopForm, productivity: Number(e.target.value) })}
+                    className="w-full"
+                  />
                 </div>
               </div>
-              <div className="flex gap-3 mt-4">
+
+              <div className="flex gap-3 mt-4 relative z-10">
                 <button onClick={handleStop} className="btn-primary flex-1 flex items-center justify-center gap-2">
                   <Square className="w-4 h-4" /> Stop
                 </button>
@@ -149,30 +309,121 @@ export default function TimeTrackerPage() {
               </div>
             </div>
           ) : (
-            /* Start New Context */
-            <div className="card p-6">
-              <h3 className="text-sm font-medium text-gray-900 mb-4">Start New Context</h3>
-              <div className="space-y-3">
-                <input value={contextName} onChange={e => setContextName(e.target.value)} placeholder="What are you working on?" className="input-field w-full" onKeyDown={e => e.key === 'Enter' && handleStart()} />
-                <div className="grid grid-cols-2 gap-3">
-                  <select value={contextType} onChange={e => setContextType(e.target.value)} className="input-field">
-                    {CONTEXT_TYPES.map(t => <option key={t} value={t}>{t.replace('_', ' ')}</option>)}
+            <div className="grid lg:grid-cols-5 gap-4">
+              <div className="card p-5 sm:p-6 lg:col-span-3">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-medium text-gray-900">Start New Context</h3>
+                  <span className="inline-flex items-center gap-1 text-[11px] text-gray-500">
+                    <Sparkles className="w-3 h-3 text-accent" /> Focus sprint
+                  </span>
+                </div>
+
+                <div className="space-y-3">
+                  <input
+                    value={contextName}
+                    onChange={(e) => setContextName(e.target.value)}
+                    placeholder="What are you working on?"
+                    className="input-field w-full"
+                    onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+                  />
+
+                  <select
+                    value={selectedHabitId}
+                    onChange={(e) => setSelectedHabitId(e.target.value)}
+                    className="input-field w-full"
+                  >
+                    <option value="">No habit (standalone session)</option>
+                    {habits.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.name}
+                        {h.goal_title ? ` — ${h.goal_title}` : ''}
+                      </option>
+                    ))}
                   </select>
-                  <div>
-                    <label className="text-xs text-gray-500">Complexity: {complexity}/10</label>
-                    <input type="range" min="1" max="10" value={complexity} onChange={e => setComplexity(Number(e.target.value))} className="w-full" />
+
+                  <div className="flex flex-wrap gap-2">
+                    {CONTEXT_TYPES.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setContextType(t)}
+                        className={`px-2.5 py-1.5 rounded-full text-xs border transition-colors ${
+                          contextType === t
+                            ? 'bg-black text-white border-black'
+                            : 'border-gray-200 text-gray-600 hover:bg-gray-100'
+                        }`}
+                      >
+                        {t.replace('_', ' ')}
+                      </button>
+                    ))}
+                  </div>
+
+                  <div className="rounded-xl border border-gray-200 p-3 bg-gray-100/50">
+                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                      <span>Complexity</span>
+                      <span className="font-mono">{complexity}/10</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={complexity}
+                      onChange={(e) => setComplexity(Number(e.target.value))}
+                      className="w-full"
+                    />
+                    <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+                      <span>Light</span>
+                      <span>Deep</span>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={handleStart}
+                    disabled={!contextName.trim()}
+                    className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-30"
+                  >
+                    <Play className="w-4 h-4" /> Start Timer
+                  </button>
+                </div>
+              </div>
+
+              <div className="card p-5 sm:p-6 lg:col-span-2">
+                <h4 className="text-sm font-medium text-gray-900 mb-3">Session Guide</h4>
+                <div className="space-y-3 text-sm">
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-accent/10 text-accent flex items-center justify-center">
+                      <Activity className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-gray-900 font-medium">Pick one clear outcome</p>
+                      <p className="text-gray-500 text-xs">Define one deliverable before you hit start.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center">
+                      <Clock className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-gray-900 font-medium">Aim for 45-90 minutes</p>
+                      <p className="text-gray-500 text-xs">Long uninterrupted blocks improve deep work scoring.</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2.5">
+                    <div className="w-7 h-7 rounded-full bg-gray-100 text-gray-700 flex items-center justify-center">
+                      <Brain className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <p className="text-gray-900 font-medium">Rate mood and output</p>
+                      <p className="text-gray-500 text-xs">Your post-session ratings train better insights.</p>
+                    </div>
                   </div>
                 </div>
-                <button onClick={handleStart} disabled={!contextName.trim()} className="btn-primary w-full flex items-center justify-center gap-2 disabled:opacity-30">
-                  <Play className="w-4 h-4" /> Start Timer
-                </button>
               </div>
             </div>
           )}
         </div>
       )}
 
-      {/* Today Summary Tab */}
       {tab === 'summary' && summary && (
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -186,7 +437,6 @@ export default function TimeTrackerPage() {
             <div className="card p-4"><span className="text-sm text-gray-500">Avg Cognitive Load:</span> <span className="font-bold">{summary.avg_cognitive_load}/10</span></div>
           )}
 
-          {/* Type Breakdown */}
           {Object.keys(summary.type_breakdown).length > 0 && (
             <div className="card p-6">
               <h3 className="text-sm font-medium text-gray-900 mb-4">Time by Type</h3>
@@ -201,7 +451,6 @@ export default function TimeTrackerPage() {
             </div>
           )}
 
-          {/* Context Timeline */}
           {summary.contexts?.length > 0 && (
             <div className="card p-6">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Timeline</h3>
@@ -221,7 +470,6 @@ export default function TimeTrackerPage() {
         </div>
       )}
 
-      {/* Deep Work Tab */}
       {tab === 'deepwork' && (
         <div className="space-y-4">
           {deepWork.length === 0 ? (
@@ -235,7 +483,7 @@ export default function TimeTrackerPage() {
                 <h3 className="text-sm font-medium text-gray-900 mb-4">Deep Work Blocks (Last 30 Days)</h3>
                 <ResponsiveContainer width="100%" height={200}>
                   <BarChart data={deepWork}>
-                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={d => d.slice(5)} />
+                    <XAxis dataKey="date" tick={{ fontSize: 11 }} tickFormatter={(d) => d.slice(5)} />
                     <YAxis tick={{ fontSize: 11 }} />
                     <Tooltip />
                     <Bar dataKey="duration_minutes" fill={colors.primary} radius={[4, 4, 0, 0]} />
@@ -259,10 +507,8 @@ export default function TimeTrackerPage() {
         </div>
       )}
 
-      {/* Insights Tab */}
       {tab === 'insights' && (
         <div className="space-y-4">
-          {/* Optimal Times */}
           {optimalTimes && optimalTimes.hours && Object.keys(optimalTimes.hours).length > 0 && (
             <div className="card p-6">
               <h3 className="text-sm font-medium text-gray-900 mb-2">Optimal Work Times</h3>
@@ -278,7 +524,6 @@ export default function TimeTrackerPage() {
             </div>
           )}
 
-          {/* Attention Residue */}
           {residue && (
             <div className="card p-6">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Attention Residue Analysis</h3>
