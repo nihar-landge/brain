@@ -12,8 +12,11 @@ from config import DATABASE_URL
 db_url = DATABASE_URL
 if db_url.startswith("sqlite:///./"):
     import os
+
     db_path = db_url.replace("sqlite:///./", "")
-    os.makedirs(os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True)
+    os.makedirs(
+        os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
+    )
 
 # Create engine
 engine = create_engine(
@@ -41,6 +44,6 @@ def get_db():
 def create_tables():
     """Create all database tables."""
     # Import all models so they register with Base
-    from models import user, journal, habits, goals  # noqa: F401
+    from models import user, journal, habits, goals, social, context  # noqa: F401
 
     Base.metadata.create_all(bind=engine)

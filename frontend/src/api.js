@@ -78,4 +78,43 @@ export const listBackups = () => api.get('/data/backup/list')
 export const getHealthCheck = () => api.get('/health')
 export const getStats = () => api.get('/stats')
 
+// ======================== SOCIAL GRAPH ========================
+
+export const getPeople = (activeOnly = true) => api.get('/social/people', { params: { active_only: activeOnly } })
+export const createPerson = (data) => api.post('/social/people', data)
+export const updatePerson = (id, data) => api.put(`/social/people/${id}`, data)
+export const deletePerson = (id) => api.delete(`/social/people/${id}`)
+export const createInteraction = (data) => api.post('/social/interactions', data)
+export const getInteractions = (params) => api.get('/social/interactions', { params })
+export const getSocialGraph = () => api.get('/social/graph')
+export const getNetworkAnalysis = () => api.get('/social/analysis')
+export const getToxicPatterns = () => api.get('/social/toxic-patterns')
+export const logSocialBattery = (data) => api.post('/social/battery', data)
+export const getSocialBatteryHistory = (days = 30) => api.get('/social/battery/history', { params: { days } })
+export const processJournalEntry = (entryId) => api.post('/social/process-entry', { entry_id: entryId })
+
+// ======================== CONTEXT SWITCHING ========================
+
+export const startContext = (data) => api.post('/context/start', data)
+export const stopContext = (data = {}) => api.post('/context/stop', data)
+export const getActiveContext = () => api.get('/context/active')
+export const logInterruption = (interruptedBy = 'unknown') => api.post('/context/interrupt', { interrupted_by: interruptedBy })
+export const getContextSummary = (date) => api.get('/context/summary', { params: date ? { date } : {} })
+export const getDeepWorkBlocks = (days = 30) => api.get('/context/deep-work', { params: { days } })
+export const getOptimalWorkTimes = (days = 30) => api.get('/context/optimal-times', { params: { days } })
+export const getAttentionResidue = (days = 30) => api.get('/context/attention-residue', { params: { days } })
+
+// ======================== MULTI-AGENT ========================
+
+export const getAgents = () => api.get('/agents/agents')
+export const singleAgentChat = (message, agent = 'therapist') => api.post('/agents/chat', { message, agent })
+export const multiAgentChat = (message, agents = null) => api.post('/agents/multi-chat', { message, agents })
+
+// ======================== CAUSAL INFERENCE ========================
+
+export const getCorrelations = (days = 90) => api.get('/causal/correlations', { params: { days } })
+export const runCausalAnalysis = (treatment, outcome) => api.post('/causal/analyze', { treatment, outcome })
+export const getCounterfactuals = () => api.get('/causal/counterfactuals')
+export const suggestExperiments = () => api.get('/causal/experiments')
+
 export default api

@@ -23,6 +23,10 @@ from api.habits import router as habits_router
 from api.search import router as search_router
 from utils.auth import verify_api_key
 from api.data_management import router as data_router
+from api.social_graph import router as social_graph_router
+from api.context_switching import router as context_router
+from api.multi_agent import router as multi_agent_router
+from api.causal_inference import router as causal_router
 
 
 @asynccontextmanager
@@ -119,6 +123,30 @@ app.include_router(
 )
 app.include_router(
     data_router, prefix="/api/data", tags=["Data Management"], dependencies=auth_dep
+)
+app.include_router(
+    social_graph_router,
+    prefix="/api/social",
+    tags=["Social Graph"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    context_router,
+    prefix="/api/context",
+    tags=["Context Switching"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    multi_agent_router,
+    prefix="/api/agents",
+    tags=["Multi-Agent"],
+    dependencies=auth_dep,
+)
+app.include_router(
+    causal_router,
+    prefix="/api/causal",
+    tags=["Causal Inference"],
+    dependencies=auth_dep,
 )
 
 

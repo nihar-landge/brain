@@ -17,6 +17,10 @@ pandas>=2.0.0
 numpy>=1.24.0
 scipy>=1.11.0
 
+# Graph & Causal Analysis
+networkx>=3.1
+dowhy>=0.11.0
+
 # Utilities
 httpx==0.27.0
 aiofiles>=23.2.0
