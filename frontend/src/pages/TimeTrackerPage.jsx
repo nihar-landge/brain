@@ -44,13 +44,31 @@ function useChartColors() {
   }
 }
 
+function getElapsedSeconds(activeContext) {
+  if (!activeContext) return 0
+
+  const startedAt = activeContext.started_at
+  if (!startedAt) return (activeContext.elapsed_minutes || 0) * 60
+
+  const normalized = startedAt.includes('T')
+    ? startedAt
+    : `${startedAt.replace(' ', 'T')}Z`
+
+  const parsed = new Date(normalized)
+  if (Number.isNaN(parsed.getTime())) {
+    return (activeContext.elapsed_minutes || 0) * 60
+  }
+
+  return Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 1000))
+}
+
 export default function TimeTrackerPage() {
   const [tab, setTab] = useState('timer')
   const [active, setActive] = useState(null)
   const [contextName, setContextName] = useState('')
   const [contextType, setContextType] = useState('deep_work')
   const [complexity, setComplexity] = useState(5)
-  const [elapsed, setElapsed] = useState(0)
+  const [elapsedSeconds, setElapsedSeconds] = useState(0)
   const [summary, setSummary] = useState(null)
   const [deepWork, setDeepWork] = useState([])
   const [optimalTimes, setOptimalTimes] = useState(null)
@@ -78,10 +96,10 @@ export default function TimeTrackerPage() {
         const data = aRes.value.data
         if (data.active) {
           setActive(data)
-          setElapsed(data.elapsed_minutes || 0)
+          setElapsedSeconds(getElapsedSeconds(data))
         } else {
           setActive(null)
-          setElapsed(0)
+          setElapsedSeconds(0)
         }
       }
       if (sRes.status === 'fulfilled') setSummary(sRes.value.data)
@@ -100,7 +118,14 @@ export default function TimeTrackerPage() {
 
   useEffect(() => {
     if (active) {
-      timerRef.current = setInterval(() => setElapsed((prev) => prev + 1), 60000)
+      timerRef.current = setInterval(() => {
+        const fromStart = getElapsedSeconds(active)
+        if (fromStart > 0) {
+          setElapsedSeconds(fromStart)
+        } else {
+          setElapsedSeconds((prev) => prev + 1)
+        }
+      }, 1000)
       return () => clearInterval(timerRef.current)
     }
     clearInterval(timerRef.current)
@@ -117,7 +142,7 @@ export default function TimeTrackerPage() {
       if (selectedHabitId) payload.habit_id = Number(selectedHabitId)
       const res = await startContext(payload)
       setActive(res.data)
-      setElapsed(0)
+      setElapsedSeconds(0)
       setContextName('')
       setSelectedHabitId('')
     } catch {}
@@ -131,7 +156,7 @@ export default function TimeTrackerPage() {
         productivity_rating: stopForm.productivity,
       })
       setActive(null)
-      setElapsed(0)
+      setElapsedSeconds(0)
       loadData()
     } catch {}
   }
@@ -150,9 +175,10 @@ export default function TimeTrackerPage() {
   }
 
   const formatClock = (mins) => {
-    const h = String(Math.floor(mins / 60)).padStart(2, '0')
-    const m = String(mins % 60).padStart(2, '0')
-    return `${h}:${m}:00`
+    const h = String(Math.floor(mins / 3600)).padStart(2, '0')
+    const m = String(Math.floor((mins % 3600) / 60)).padStart(2, '0')
+    const s = String(mins % 60).padStart(2, '0')
+    return `${h}:${m}:${s}`
   }
 
   const tabs = [
@@ -162,7 +188,8 @@ export default function TimeTrackerPage() {
     { id: 'insights', label: 'Insights', icon: Zap },
   ]
 
-  const focusProgress = Math.min(100, Math.round((elapsed / 90) * 100))
+  const elapsedMinutes = Math.floor(elapsedSeconds / 60)
+  const focusProgress = Math.min(100, Math.round((elapsedMinutes / 90) * 100))
 
   if (loading) {
     return (
@@ -185,12 +212,12 @@ export default function TimeTrackerPage() {
         </div>
       </div>
 
-      <div className="flex gap-1 p-1 rounded-xl border border-gray-200 bg-gray-100/70 w-fit">
+      <div className="flex gap-1 p-1 rounded-xl border border-gray-200 bg-gray-100/70 w-full sm:w-fit overflow-x-auto">
         {tabs.map((t) => (
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
               tab === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
             }`}
           >
@@ -249,14 +276,14 @@ export default function TimeTrackerPage() {
 
                 <div className="mt-5 flex justify-center">
                   <div
-                    className="w-44 h-44 rounded-full p-2"
+                    className="w-36 h-36 sm:w-44 sm:h-44 rounded-full p-2"
                     style={{
                       background: `conic-gradient(var(--color-accent) ${focusProgress}%, var(--color-gray-200) ${focusProgress}% 100%)`,
                     }}
                   >
                     <div className="w-full h-full rounded-full bg-white border border-gray-200 flex flex-col items-center justify-center">
                       <p className="text-[10px] uppercase tracking-wide text-gray-500">Flow Target 90m</p>
-                      <div className="text-2xl sm:text-3xl font-mono font-bold text-gray-900 mt-1">{formatClock(elapsed)}</div>
+                      <div className="text-2xl sm:text-3xl font-mono font-bold text-gray-900 mt-1">{formatClock(elapsedSeconds)}</div>
                       <p className="text-xs text-gray-500 mt-1">{focusProgress}% milestone</p>
                     </div>
                   </div>
@@ -299,7 +326,7 @@ export default function TimeTrackerPage() {
                 </div>
               </div>
 
-              <div className="flex gap-3 mt-4 relative z-10">
+              <div className="flex flex-col sm:flex-row gap-3 mt-4 relative z-10">
                 <button onClick={handleStop} className="btn-primary flex-1 flex items-center justify-center gap-2">
                   <Square className="w-4 h-4" /> Stop
                 </button>
