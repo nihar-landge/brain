@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Brain, Loader2 } from 'lucide-react'
 import { predictMood, getEnergyForecast, getPatterns, getPredictionStatus } from '../api'
+import { useChartColors } from '../ThemeContext'
 
 const ChartTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -18,6 +19,7 @@ const ChartTooltip = ({ active, payload, label }) => {
 }
 
 export default function PredictionsPage() {
+    const colors = useChartColors()
     const [mlStatus, setMlStatus] = useState(null)
     const [moodPrediction, setMoodPrediction] = useState(null)
     const [energyForecast, setEnergyForecast] = useState(null)
@@ -125,15 +127,15 @@ export default function PredictionsPage() {
                                 <AreaChart data={energyForecast.forecast}>
                                     <defs>
                                         <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#525252" stopOpacity={0.15} />
-                                            <stop offset="100%" stopColor="#525252" stopOpacity={0} />
+                                            <stop offset="0%" stopColor={colors.gradient} stopOpacity={0.15} />
+                                            <stop offset="100%" stopColor={colors.gradient} stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <XAxis dataKey="day" tick={{ fill: '#404040', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                    <YAxis domain={[0, 10]} tick={{ fill: '#404040', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <XAxis dataKey="day" tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                    <YAxis domain={[0, 10]} tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
                                     <Tooltip content={<ChartTooltip />} />
-                                    <Area type="monotone" dataKey="energy" stroke="#737373" fill="url(#energyGrad)" strokeWidth={1.5} name="Energy"
-                                        dot={false} activeDot={{ r: 3, fill: '#d4d4d4', stroke: '#0a0a0a', strokeWidth: 2 }} />
+                                    <Area type="monotone" dataKey="energy" stroke={colors.mutedStroke} fill="url(#energyGrad)" strokeWidth={1.5} name="Energy"
+                                        dot={false} activeDot={{ r: 3, fill: colors.activeDotFill, stroke: colors.line, strokeWidth: 2 }} />
                                 </AreaChart>
                             </ResponsiveContainer>
                             <div className="flex justify-between mt-3 text-[11px] text-text-faint">
@@ -156,10 +158,10 @@ export default function PredictionsPage() {
                     <>
                         <ResponsiveContainer width="100%" height={180}>
                             <BarChart data={dayAbbrevs}>
-                                <XAxis dataKey="day" tick={{ fill: '#404040', fontSize: 10 }} axisLine={false} tickLine={false} />
-                                <YAxis domain={[0, 10]} tick={{ fill: '#404040', fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <XAxis dataKey="day" tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
+                                <YAxis domain={[0, 10]} tick={{ fill: colors.tick, fontSize: 10 }} axisLine={false} tickLine={false} />
                                 <Tooltip content={<ChartTooltip />} />
-                                <Bar dataKey="avg" fill="#222222" radius={[3, 3, 0, 0]} name="Avg Mood" />
+                                <Bar dataKey="avg" fill={colors.bar} radius={[3, 3, 0, 0]} name="Avg Mood" />
                             </BarChart>
                         </ResponsiveContainer>
                         {patterns && (

@@ -27,6 +27,94 @@
   --font-mono: 'JetBrains Mono', 'SF Mono', 'Fira Code', monospace;
 }
 
+/* =============================================
+   THEME OVERRIDES
+   ============================================= */
+
+/* Dark Theme */
+[data-theme="dark"] {
+  --color-black: #ffffff;
+  --color-gray-900: #f0f0f0;
+  --color-gray-800: #d4d4d4;
+  --color-gray-700: #b0b0b0;
+  --color-gray-600: #999999;
+  --color-gray-500: #808080;
+  --color-gray-400: #666666;
+  --color-gray-300: #444444;
+  --color-gray-200: #333333;
+  --color-gray-100: #222222;
+  --color-white: #121212;
+
+  --color-accent: #5CA0F2;
+  --color-success: #34d67d;
+  --color-warning: #f5a623;
+  --color-error: #ef5350;
+
+  /* Component-specific tokens */
+  --card-shadow-hover: rgba(255, 255, 255, 0.04);
+  --input-focus-shadow: rgba(255, 255, 255, 0.06);
+  --insight-bg: #1a2332;
+  --insight-success-bg: #162216;
+  --insight-warning-bg: #2a2010;
+  --insight-error-bg: #2a1414;
+  --scrollbar-thumb: #444444;
+  --scrollbar-thumb-hover: #555555;
+  --danger-text: #f87171;
+  --danger-border: #7f1d1d;
+  --danger-hover-bg: #2a1414;
+  --status-dot: #34d67d;
+}
+
+/* Light Theme — warm, soft, slightly off-white */
+[data-theme="light"] {
+  --color-black: #1e293b;
+  --color-gray-900: #334155;
+  --color-gray-800: #475569;
+  --color-gray-700: #64748b;
+  --color-gray-600: #94a3b8;
+  --color-gray-500: #94a3b8;
+  --color-gray-400: #cbd5e1;
+  --color-gray-300: #e2e8f0;
+  --color-gray-200: #e2e8f0;
+  --color-gray-100: #f1f5f9;
+  --color-white: #fafbfd;
+
+  --color-accent: #3b82f6;
+  --color-success: #22c55e;
+  --color-warning: #eab308;
+  --color-error: #ef4444;
+
+  /* Component-specific tokens */
+  --card-shadow-hover: rgba(0, 0, 0, 0.06);
+  --input-focus-shadow: rgba(59, 130, 246, 0.08);
+  --insight-bg: #eff6ff;
+  --insight-success-bg: #f0fdf4;
+  --insight-warning-bg: #fffbeb;
+  --insight-error-bg: #fef2f2;
+  --scrollbar-thumb: #cbd5e1;
+  --scrollbar-thumb-hover: #94a3b8;
+  --danger-text: #ef4444;
+  --danger-border: #fecaca;
+  --danger-hover-bg: #fef2f2;
+  --status-dot: #22c55e;
+}
+
+/* Monochrome defaults for component tokens */
+:root, [data-theme="monochrome"] {
+  --card-shadow-hover: rgba(0, 0, 0, 0.06);
+  --input-focus-shadow: rgba(0, 0, 0, 0.05);
+  --insight-bg: #f0f7ff;
+  --insight-success-bg: #f0fdf4;
+  --insight-warning-bg: #fffbeb;
+  --insight-error-bg: #fef2f2;
+  --scrollbar-thumb: #cccccc;
+  --scrollbar-thumb-hover: #999999;
+  --danger-text: #dc2626;
+  --danger-border: #fecaca;
+  --danger-hover-bg: #fef2f2;
+  --status-dot: #22c55e;
+}
+
 @layer base {
   body {
     @apply bg-white text-gray-900 font-sans antialiased;
@@ -46,17 +134,17 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #cccccc;
+    background: var(--scrollbar-thumb);
     border-radius: 6px;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #999999;
+    background: var(--scrollbar-thumb-hover);
   }
 
   * {
     scrollbar-width: thin;
-    scrollbar-color: #cccccc transparent;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 }
 
@@ -71,7 +159,7 @@
   }
 
   .card:hover {
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.06);
+    box-shadow: 0 8px 16px var(--card-shadow-hover);
   }
 
   /* === BUTTONS === */
@@ -83,7 +171,7 @@
 
   .btn-primary:hover {
     transform: translateY(-1px);
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 4px 6px var(--card-shadow-hover);
   }
 
   .btn-primary:active {
@@ -103,7 +191,7 @@
     background: var(--color-gray-100);
     border-color: var(--color-gray-300);
     transform: translateY(-1px);
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 2px 4px var(--card-shadow-hover);
   }
 
   .btn-ghost {
@@ -126,7 +214,7 @@
   }
 
   .btn-link:hover {
-    color: #357ABD;
+    opacity: 0.8;
   }
 
   /* === INPUTS === */
@@ -143,7 +231,7 @@
 
   .input-field:focus {
     border-color: var(--color-gray-400);
-    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 0 0 3px var(--input-focus-shadow);
   }
 
   /* === BADGE / TAG === */
@@ -189,7 +277,7 @@
     background: var(--color-black);
     cursor: pointer;
     border: 2px solid var(--color-white);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px var(--card-shadow-hover);
   }
 
   input[type="range"]::-moz-range-thumb {
@@ -199,7 +287,7 @@
     background: var(--color-black);
     cursor: pointer;
     border: 2px solid var(--color-white);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 1px 3px var(--card-shadow-hover);
   }
 
   /* Desktop: smaller slider thumbs */
@@ -246,22 +334,22 @@
   .insight-card {
     @apply p-4 rounded-lg;
     border-left: 4px solid var(--color-accent);
-    background: #f0f7ff;
+    background: var(--insight-bg);
   }
 
   .insight-card-success {
     border-left-color: var(--color-success);
-    background: #f0fdf4;
+    background: var(--insight-success-bg);
   }
 
   .insight-card-warning {
     border-left-color: var(--color-warning);
-    background: #fffbeb;
+    background: var(--insight-warning-bg);
   }
 
   .insight-card-error {
     border-left-color: var(--color-error);
-    background: #fef2f2;
+    background: var(--insight-error-bg);
   }
 
   /* === SKELETON === */

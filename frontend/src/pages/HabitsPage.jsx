@@ -77,7 +77,7 @@ export default function HabitsPage() {
                             <button key={cat} type="button" onClick={() => setForm({ ...form, habit_category: cat })}
                                 className={`px-3 py-1.5 rounded-md text-[12px] capitalize transition-colors ${
                                     form.habit_category === cat
-                                        ? 'bg-[#e5e5e5] text-black'
+                                        ? 'bg-gray-200 text-black'
                                         : 'text-text-muted border border-border hover:border-border-light'
                                 }`}>
                                 {cat}
@@ -89,7 +89,7 @@ export default function HabitsPage() {
                             <button key={f} type="button" onClick={() => setForm({ ...form, target_frequency: f })}
                                 className={`px-3 py-1.5 rounded-md text-[12px] transition-colors ${
                                     form.target_frequency === f
-                                        ? 'bg-[#e5e5e5] text-black'
+                                        ? 'bg-gray-200 text-black'
                                         : 'text-text-muted border border-border hover:border-border-light'
                                 }`}>
                                 {f.replace(/_/g, ' ')}

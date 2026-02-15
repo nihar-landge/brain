@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react'
 import { LineChart, Line, BarChart, Bar, AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
-import { Brain, Loader2, Download, Sparkles } from 'lucide-react'
+import { Brain, Loader2, Sparkles } from 'lucide-react'
 import { predictMood, getEnergyForecast, getPatterns, getPredictionStatus, getInsights, getDashboardData } from '../api'
+import { useChartColors } from '../ThemeContext'
 
 const ChartTooltip = ({ active, payload, label }) => {
     if (!active || !payload?.length) return null
@@ -18,6 +19,7 @@ const ChartTooltip = ({ active, payload, label }) => {
 }
 
 export default function AnalyticsPage() {
+    const colors = useChartColors()
     const [mlStatus, setMlStatus] = useState(null)
     const [moodPrediction, setMoodPrediction] = useState(null)
     const [energyForecast, setEnergyForecast] = useState(null)
@@ -99,7 +101,7 @@ export default function AnalyticsPage() {
             {/* Mood Trends */}
             <div className="card p-6">
                 <h3 className="font-semibold text-gray-900 mb-1">Mood Trends</h3>
-                {avgMood && (
+                {avgMood != null && (
                     <p className="text-sm text-gray-500 mb-4">
                         Average: <span className="font-semibold text-gray-900">{avgMood.toFixed(1)}/10</span>
                     </p>
@@ -107,12 +109,12 @@ export default function AnalyticsPage() {
                 {moodTrend.length > 0 ? (
                     <ResponsiveContainer width="100%" height={250}>
                         <LineChart data={moodTrend}>
-                            <XAxis dataKey="date" tick={{ fill: '#808080', fontSize: 12 }} tickFormatter={d => d.slice(5)} axisLine={false} tickLine={false} />
-                            <YAxis domain={[1, 10]} tick={{ fill: '#808080', fontSize: 12 }} axisLine={false} tickLine={false} />
+                            <XAxis dataKey="date" tick={{ fill: colors.tick, fontSize: 12 }} tickFormatter={d => d.slice(5)} axisLine={false} tickLine={false} />
+                            <YAxis domain={[1, 10]} tick={{ fill: colors.tick, fontSize: 12 }} axisLine={false} tickLine={false} />
                             <Tooltip content={<ChartTooltip />} />
-                            <Line type="monotone" dataKey="mood" stroke="#000000" strokeWidth={2} name="Mood"
-                                dot={{ r: 3, fill: '#000000' }}
-                                activeDot={{ r: 5, fill: '#000000', stroke: '#ffffff', strokeWidth: 2 }} />
+                            <Line type="monotone" dataKey="mood" stroke={colors.line} strokeWidth={2} name="Mood"
+                                dot={{ r: 3, fill: colors.line }}
+                                activeDot={{ r: 5, fill: colors.line, stroke: colors.bg, strokeWidth: 2 }} />
                         </LineChart>
                     </ResponsiveContainer>
                 ) : (
@@ -133,15 +135,15 @@ export default function AnalyticsPage() {
                                 <AreaChart data={energyForecast.forecast}>
                                     <defs>
                                         <linearGradient id="energyGrad" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#000000" stopOpacity={0.1} />
-                                            <stop offset="100%" stopColor="#000000" stopOpacity={0} />
+                                            <stop offset="0%" stopColor={colors.line} stopOpacity={0.1} />
+                                            <stop offset="100%" stopColor={colors.line} stopOpacity={0} />
                                         </linearGradient>
                                     </defs>
-                                    <XAxis dataKey="day" tick={{ fill: '#808080', fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis domain={[0, 10]} tick={{ fill: '#808080', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <XAxis dataKey="date" tick={{ fill: colors.tick, fontSize: 11 }} tickFormatter={d => d?.slice?.(5) || d} axisLine={false} tickLine={false} />
+                                    <YAxis domain={[0, 10]} tick={{ fill: colors.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
                                     <Tooltip content={<ChartTooltip />} />
-                                    <Area type="monotone" dataKey="energy" stroke="#000000" fill="url(#energyGrad)" strokeWidth={2} name="Energy"
-                                        dot={{ r: 3, fill: '#000000' }} />
+                                    <Area type="monotone" dataKey="energy" stroke={colors.line} fill="url(#energyGrad)" strokeWidth={2} name="Energy"
+                                        dot={{ r: 3, fill: colors.line }} />
                                 </AreaChart>
                             </ResponsiveContainer>
                             <div className="flex justify-between mt-3 text-xs text-gray-500">
@@ -163,10 +165,10 @@ export default function AnalyticsPage() {
                         <>
                             <ResponsiveContainer width="100%" height={200}>
                                 <BarChart data={dayAbbrevs}>
-                                    <XAxis dataKey="day" tick={{ fill: '#808080', fontSize: 11 }} axisLine={false} tickLine={false} />
-                                    <YAxis domain={[0, 10]} tick={{ fill: '#808080', fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <XAxis dataKey="day" tick={{ fill: colors.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
+                                    <YAxis domain={[0, 10]} tick={{ fill: colors.tick, fontSize: 11 }} axisLine={false} tickLine={false} />
                                     <Tooltip content={<ChartTooltip />} />
-                                    <Bar dataKey="avg" fill="#1a1a1a" radius={[4, 4, 0, 0]} name="Avg Mood" />
+                                    <Bar dataKey="avg" fill={colors.bar} radius={[4, 4, 0, 0]} name="Avg Mood" />
                                 </BarChart>
                             </ResponsiveContainer>
                             {patterns && (

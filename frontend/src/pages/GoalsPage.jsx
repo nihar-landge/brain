@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
-import { CheckCircle, Circle, Clock, Flag, MoreVertical, Plus, Flame, Trash2, Check, Sparkles, Calendar } from 'lucide-react'
-import { getGoals, createGoal, updateGoal, getHabits, createHabit, logHabit, getHabitStats, deleteHabit } from '../api'
+import { CheckCircle, Flag, Trash2, Check, Calendar } from 'lucide-react'
+import { getGoals, createGoal, updateGoal, deleteGoal, getHabits, createHabit, logHabit, getHabitStats, deleteHabit } from '../api'
 
 const priorityLabel = { 1: 'Low', 2: 'Normal', 3: 'Mid', 4: 'High', 5: 'Critical' }
 const habitIcons = {
@@ -39,6 +39,7 @@ export default function GoalsPage() {
 
     // Load habits
     const loadHabits = async () => {
+        setHabitsLoading(true)
         try {
             const { data } = await getHabits()
             setHabits(data)
@@ -78,21 +79,42 @@ export default function GoalsPage() {
     const handleHabitSubmit = async (e) => {
         e.preventDefault()
         if (!habitForm.habit_name.trim()) return
-        await createHabit(habitForm)
-        setHabitForm({ habit_name: '', habit_description: '', habit_category: '', target_frequency: 'daily' })
-        setShowHabitForm(false)
-        loadHabits()
+        try {
+            await createHabit(habitForm)
+            setHabitForm({ habit_name: '', habit_description: '', habit_category: '', target_frequency: 'daily' })
+            setShowHabitForm(false)
+            loadHabits()
+        } catch (err) { console.error(err) }
     }
 
     const handleLog = async (habitId) => {
-        await logHabit(habitId, { completed: true })
-        loadHabits()
+        try {
+            await logHabit(habitId, { completed: true })
+            loadHabits()
+        } catch (err) { console.error(err) }
     }
 
     const handleDeleteHabit = async (id) => {
         if (!confirm('Delete this habit?')) return
-        await deleteHabit(id)
-        loadHabits()
+        try {
+            await deleteHabit(id)
+            loadHabits()
+        } catch (err) { console.error(err) }
+    }
+
+    const handleDeleteGoal = async (id) => {
+        if (!confirm('Delete this goal?')) return
+        try {
+            await deleteGoal(id)
+            loadGoals()
+        } catch (err) { console.error(err) }
+    }
+
+    const handleMarkComplete = async (id, goal) => {
+        try {
+            await updateGoal(id, { progress: 100, status: 'completed' })
+            loadGoals()
+        } catch (err) { console.error(err) }
     }
 
     const daysLeft = (targetDate) => {
@@ -114,7 +136,7 @@ export default function GoalsPage() {
                                     className={`px-3 py-2 text-sm font-medium capitalize transition-colors ${
                                         goalFilter === f
                                             ? 'bg-black text-white'
-                                            : 'text-gray-500 hover:bg-gray-50'
+                                            : 'text-gray-500 hover:bg-gray-100'
                                     }`}>
                                     {f}
                                 </button>
@@ -174,6 +196,10 @@ export default function GoalsPage() {
                                             <p className="text-sm text-gray-500 capitalize">{goal.category}</p>
                                         </div>
                                     </div>
+                                    <button onClick={() => handleDeleteGoal(goal.id)}
+                                        className="text-gray-400 hover:text-gray-600 transition-colors">
+                                        <Trash2 className="w-5 h-5" />
+                                    </button>
                                 </div>
 
                                 {/* Progress Bar */}
@@ -215,7 +241,7 @@ export default function GoalsPage() {
                                     <button onClick={() => updateProgress(goal.id, -10)}
                                         className="btn-secondary text-sm py-2 px-3">-10%</button>
                                     {goal.progress < 100 && (
-                                        <button onClick={() => updateProgress(goal.id, 100 - goal.progress)}
+                                        <button onClick={() => handleMarkComplete(goal.id, goal)}
                                             className="btn-primary text-sm py-2 px-3 sm:ml-auto flex items-center gap-1">
                                             <CheckCircle className="w-4 h-4" />
                                             <span className="hidden sm:inline">Mark</span> Complete
@@ -260,7 +286,7 @@ export default function GoalsPage() {
                                         className={`px-3 py-2 rounded-lg text-sm capitalize transition-colors ${
                                             habitForm.habit_category === cat
                                                 ? 'bg-black text-white'
-                                                : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                                : 'text-gray-600 border border-gray-200 hover:bg-gray-100'
                                         }`}>
                                         {habitIcons[cat] || '✨'} {cat}
                                     </button>
@@ -276,7 +302,7 @@ export default function GoalsPage() {
                                         className={`px-3 py-2 rounded-lg text-sm transition-colors ${
                                             habitForm.target_frequency === f
                                                 ? 'bg-black text-white'
-                                                : 'text-gray-600 border border-gray-200 hover:bg-gray-50'
+                                                : 'text-gray-600 border border-gray-200 hover:bg-gray-100'
                                         }`}>
                                         {f.replace(/_/g, ' ')}
                                     </button>
@@ -329,20 +355,32 @@ export default function GoalsPage() {
                                         <p className="text-sm text-gray-600 mb-2">This week</p>
                                         <div className="grid grid-cols-7 gap-1 sm:gap-2">
                                             {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map((day, i) => {
-                                                const today = new Date().getDay()
-                                                const dayIdx = today === 0 ? 6 : today - 1 // Mon=0
-                                                const isPast = i < dayIdx
+                                                const now = new Date()
+                                                const todayDow = now.getDay()
+                                                const dayIdx = todayDow === 0 ? 6 : todayDow - 1 // Mon=0
                                                 const isToday = i === dayIdx
+                                                const isFuture = i > dayIdx
+
+                                                // Compute the actual date for this cell
+                                                const cellDate = new Date(now)
+                                                cellDate.setDate(now.getDate() - (dayIdx - i))
+                                                const cellDateStr = cellDate.toLocaleDateString('en-CA')
+
+                                                // Check if this date was completed
+                                                const weekLogs = s?.week_logs || []
+                                                const isCompleted = weekLogs.includes(cellDateStr)
+
                                                 return (
                                                     <div key={day} className="text-center">
                                                         <p className="text-[10px] sm:text-xs text-gray-500 mb-1">{day}</p>
                                                         <div className={`
                                                             w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center mx-auto
-                                                            ${isPast && s?.current_streak > 0 ? 'bg-green-500' :
+                                                            ${isCompleted ? 'bg-success' :
                                                               isToday ? 'border-2 border-black' :
+                                                              isFuture ? 'bg-gray-100' :
                                                               'bg-gray-200'}
                                                         `}>
-                                                            {isPast && s?.current_streak > 0 && (
+                                                            {isCompleted && (
                                                                 <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
                                                             )}
                                                         </div>
@@ -357,7 +395,6 @@ export default function GoalsPage() {
                                         <button onClick={() => handleLog(habit.id)} className="btn-primary text-sm">
                                             Log Today
                                         </button>
-                                        <button className="btn-ghost text-sm">View Stats</button>
                                     </div>
                                 </div>
                             )

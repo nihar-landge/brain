@@ -1,17 +1,21 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Download, Upload, HardDrive, RefreshCw, Trash2, CheckCircle, Info, X, Brain } from 'lucide-react'
 import { getStats, exportData, importData, createBackup, listBackups, clearChatHistory, retrainModels, getModelPerformance } from '../api'
+import { useTheme } from '../ThemeContext'
 
 export default function SettingsPage() {
+    const { theme, setTheme } = useTheme()
     const [sysStats, setSysStats] = useState(null)
     const [models, setModels] = useState(null)
     const [backups, setBackups] = useState([])
     const [loading, setLoading] = useState({ export: false, import: false, backup: false, retrain: false, clear: false })
     const [toast, setToast] = useState(null)
+    const toastTimerRef = useRef(null)
 
     const showToast = (msg, type = 'info') => {
+        if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
         setToast({ msg, type })
-        setTimeout(() => setToast(null), 3000)
+        toastTimerRef.current = setTimeout(() => setToast(null), 3000)
     }
 
     useEffect(() => {
@@ -111,8 +115,11 @@ export default function SettingsPage() {
 
             {/* Profile Section */}
             <div className="card">
-                <div className="section-card-header">Profile</div>
-                <div className="p-4 sm:p-6 space-y-4">
+                <div className="section-card-header flex items-center justify-between">
+                    <span>Profile</span>
+                    <span className="text-xs font-normal text-gray-400">Coming Soon</span>
+                </div>
+                <div className="p-4 sm:p-6 space-y-4 opacity-50 pointer-events-none">
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                         <div>
                             <label className="text-sm font-medium text-gray-700 block mb-1">Name</label>
@@ -132,54 +139,67 @@ export default function SettingsPage() {
                             <option>UTC-8 (Pacific)</option>
                         </select>
                     </div>
-                    <button className="btn-primary">Save Changes</button>
                 </div>
             </div>
 
             {/* Preferences Section */}
             <div className="card">
-                <div className="section-card-header">Preferences</div>
+                <div className="section-card-header">
+                    <span>Preferences</span>
+                </div>
                 <div className="p-4 sm:p-6 space-y-5">
+                    {/* Theme — functional */}
                     <div>
                         <label className="text-sm font-medium text-gray-700 block mb-2">Theme</label>
                         <div className="flex flex-wrap gap-3">
-                            {['Monochrome', 'Dark', 'Light'].map((theme, i) => (
-                                <label key={theme} className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="theme" defaultChecked={i === 0}
-                                        className="accent-black" />
-                                    <span className="text-sm text-gray-700">{theme}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-2">AI Personality</label>
-                        <div className="flex flex-wrap gap-3">
-                            {['Supportive', 'Analytical', 'Balanced'].map((p, i) => (
-                                <label key={p} className="flex items-center gap-2 cursor-pointer">
-                                    <input type="radio" name="personality" defaultChecked={i === 0}
-                                        className="accent-black" />
-                                    <span className="text-sm text-gray-700">{p}</span>
-                                </label>
-                            ))}
-                        </div>
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-2">Notifications</label>
-                        <div className="space-y-2">
                             {[
-                                { label: 'Daily journal reminder (8:00 PM)', checked: true },
-                                { label: 'Habit reminders', checked: true },
-                                { label: 'AI insights', checked: true },
-                                { label: 'Weekly summary email', checked: false },
-                            ].map(({ label, checked }) => (
-                                <label key={label} className="flex items-center gap-2 cursor-pointer">
-                                    <input type="checkbox" defaultChecked={checked} className="accent-black" />
+                                { value: 'monochrome', label: 'Monochrome' },
+                                { value: 'dark', label: 'Dark' },
+                                { value: 'light', label: 'Light' },
+                            ].map(({ value, label }) => (
+                                <label key={value} className="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="theme" checked={theme === value}
+                                        onChange={() => setTheme(value)}
+                                        className="accent-black" />
                                     <span className="text-sm text-gray-700">{label}</span>
                                 </label>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Remaining preferences — Coming Soon */}
+                    <div className="opacity-50 pointer-events-none space-y-5">
+                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                            <span>More preferences coming soon</span>
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 block mb-2">AI Personality</label>
+                            <div className="flex flex-wrap gap-3">
+                                {['Supportive', 'Analytical', 'Balanced'].map((p, i) => (
+                                    <label key={p} className="flex items-center gap-2 cursor-pointer">
+                                        <input type="radio" name="personality" defaultChecked={i === 0}
+                                            className="accent-black" />
+                                        <span className="text-sm text-gray-700">{p}</span>
+                                    </label>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div>
+                            <label className="text-sm font-medium text-gray-700 block mb-2">Notifications</label>
+                            <div className="space-y-2">
+                                {[
+                                    { label: 'Daily journal reminder (8:00 PM)', checked: true },
+                                    { label: 'Habit reminders', checked: true },
+                                    { label: 'AI insights', checked: true },
+                                    { label: 'Weekly summary email', checked: false },
+                                ].map(({ label, checked }) => (
+                                    <label key={label} className="flex items-center gap-2 cursor-pointer">
+                                        <input type="checkbox" defaultChecked={checked} className="accent-black" />
+                                        <span className="text-sm text-gray-700">{label}</span>
+                                    </label>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -204,7 +224,7 @@ export default function SettingsPage() {
                             {models.models.map(m => (
                                 <div key={m.name} className="flex items-center justify-between p-4 border border-gray-200 rounded-lg">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                                    <div className="w-2 h-2 rounded-full" style={{ background: 'var(--status-dot)' }}></div>
                                         <div>
                                             <p className="text-sm font-medium text-gray-900">{m.name}</p>
                                             <p className="text-xs text-gray-500">{m.type} · v{m.version}</p>
@@ -238,7 +258,7 @@ export default function SettingsPage() {
                                 { label: 'Chat messages', val: sysStats.total_chat_messages },
                                 { label: 'Version', val: sysStats.version },
                             ].map(({ label, val }) => (
-                                <div key={label} className="text-center p-3 bg-gray-50 rounded-lg">
+                                <div key={label} className="text-center p-3 bg-gray-100 rounded-lg">
                                     <p className="text-lg font-semibold font-mono text-gray-900">{val ?? '--'}</p>
                                     <p className="text-xs text-gray-500">{label}</p>
                                 </div>
@@ -281,11 +301,14 @@ export default function SettingsPage() {
             </div>
 
             {/* Danger Zone */}
-            <div className="card border-red-200">
-                <div className="section-card-header text-red-600">Danger Zone</div>
+            <div className="card" style={{ borderColor: 'var(--danger-border)' }}>
+                <div className="section-card-header" style={{ color: 'var(--danger-text)' }}>Danger Zone</div>
                 <div className="p-4 sm:p-6">
                     <button onClick={handleClearChat} disabled={loading.clear}
-                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-lg hover:bg-red-50 transition-colors">
+                        className="flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors"
+                        style={{ color: 'var(--danger-text)', border: '1px solid var(--danger-border)' }}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--danger-hover-bg)'}
+                        onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                         <Trash2 className="w-4 h-4" />
                         {loading.clear ? 'Clearing...' : 'Clear All Chat History'}
                     </button>

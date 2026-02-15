@@ -21,7 +21,9 @@ export default function JournalPage() {
     const [saving, setSaving] = useState(false)
     const [form, setForm] = useState({
         content: '', title: '', mood: 7, energy_level: 7, stress_level: 3,
-        tags: '', category: 'daily'
+        tags: '', category: 'daily',
+        entry_date: new Date().toLocaleDateString('en-CA'),
+        entry_time: new Date().toTimeString().slice(0, 5)
     })
 
     const loadEntries = useCallback(async () => {
@@ -43,7 +45,7 @@ export default function JournalPage() {
                 tags: form.tags.split(',').map(t => t.trim()).filter(Boolean)
             })
             setShowForm(false)
-            setForm({ content: '', title: '', mood: 7, energy_level: 7, stress_level: 3, tags: '', category: 'daily' })
+            setForm({ content: '', title: '', mood: 7, energy_level: 7, stress_level: 3, tags: '', category: 'daily', entry_date: new Date().toLocaleDateString('en-CA'), entry_time: new Date().toTimeString().slice(0, 5) })
             loadEntries()
         } catch (err) { console.error(err) }
         finally { setSaving(false) }
@@ -72,8 +74,8 @@ export default function JournalPage() {
                 <div className="card p-6 animate-in">
                     <div className="flex justify-between items-center mb-6">
                         <h2 className="text-2xl font-bold text-gray-900">Journal Entry</h2>
-                        <button onClick={handleSubmit} disabled={saving || !form.content.trim()} className="btn-primary">
-                            {saving ? 'Saving...' : 'Save'}
+                        <button type="button" onClick={() => setShowForm(false)} className="btn-ghost">
+                            Cancel
                         </button>
                     </div>
 
@@ -84,7 +86,8 @@ export default function JournalPage() {
                                 <label className="text-sm text-gray-600 block mb-1">Date</label>
                                 <input
                                     type="date"
-                                    defaultValue={new Date().toISOString().slice(0, 10)}
+                                    value={form.entry_date}
+                                    onChange={e => setForm({ ...form, entry_date: e.target.value })}
                                     className="input-field"
                                 />
                             </div>
@@ -92,7 +95,8 @@ export default function JournalPage() {
                                 <label className="text-sm text-gray-600 block mb-1">Time</label>
                                 <input
                                     type="time"
-                                    defaultValue={new Date().toTimeString().slice(0, 5)}
+                                    value={form.entry_time}
+                                    onChange={e => setForm({ ...form, entry_time: e.target.value })}
                                     className="input-field"
                                 />
                             </div>
@@ -267,9 +271,14 @@ export default function JournalPage() {
 
                                 {entry.tags?.length > 0 && (
                                     <div className="flex flex-wrap gap-2 mt-3">
-                                        {(typeof entry.tags === 'string' ? JSON.parse(entry.tags) : entry.tags).map((tag, i) => (
-                                            <span key={i} className="badge text-xs">{tag}</span>
-                                        ))}
+                                        {(() => {
+                                            try {
+                                                const tags = typeof entry.tags === 'string' ? JSON.parse(entry.tags) : entry.tags
+                                                return tags.map((tag, i) => (
+                                                    <span key={i} className="badge text-xs">{tag}</span>
+                                                ))
+                                            } catch { return null }
+                                        })()}
                                     </div>
                                 )}
                             </div>

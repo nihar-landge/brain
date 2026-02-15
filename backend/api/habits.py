@@ -110,7 +110,9 @@ async def get_habit(habit_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{habit_id}", response_model=dict)
-async def update_habit(habit_id: int, updates: HabitUpdate, db: Session = Depends(get_db)):
+async def update_habit(
+    habit_id: int, updates: HabitUpdate, db: Session = Depends(get_db)
+):
     """Update habit."""
     habit = db.query(Habit).get(habit_id)
     if not habit:
@@ -208,6 +210,31 @@ async def get_habit_stats(habit_id: int, db: Session = Depends(get_db)):
         else:
             break
 
+    # Longest streak (scan all completed logs chronologically)
+    longest = 0
+    current_run = 0
+    completed_dates = sorted({l.log_date for l in logs if l.completed})
+    for idx, d in enumerate(completed_dates):
+        if idx == 0:
+            current_run = 1
+        else:
+            if (d - completed_dates[idx - 1]).days == 1:
+                current_run += 1
+            else:
+                current_run = 1
+        longest = max(longest, current_run)
+
+    # This week's completed dates (Mon-Sun)
+    # Monday of current week
+    weekday = today.weekday()  # 0=Mon
+    week_start = today - timedelta(days=weekday)
+    week_end = week_start + timedelta(days=6)
+    week_logs = sorted(
+        str(l.log_date)
+        for l in logs
+        if l.completed and week_start <= l.log_date <= week_end
+    )
+
     # Last 30 days
     month_ago = today - timedelta(days=30)
     recent_logs = [l for l in logs if l.log_date >= month_ago]
@@ -221,6 +248,8 @@ async def get_habit_stats(habit_id: int, db: Session = Depends(get_db)):
         "total_completed": completed,
         "completion_rate": rate,
         "current_streak": streak,
+        "longest_streak": longest,
+        "week_logs": week_logs,
         "recent_30d_rate": recent_rate,
         "recent_30d_completed": recent_completed,
     }

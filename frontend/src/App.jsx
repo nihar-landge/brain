@@ -1,4 +1,4 @@
-import { Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Routes, Route, NavLink, useLocation } from 'react-router-dom'
 import { Brain, LayoutDashboard, BookOpen, MessageCircle, Target, BarChart3, Settings } from 'lucide-react'
 import Dashboard from './pages/Dashboard'
 import JournalPage from './pages/JournalPage'

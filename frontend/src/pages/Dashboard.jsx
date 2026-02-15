@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 import { Plus, MessageCircle, TrendingUp, Sparkles, Calendar } from 'lucide-react'
-import { getDashboardData, getStats, getPredictionStatus, getInsights, getHabits, getHabitStats, predictMood } from '../api'
+import { getDashboardData, getPredictionStatus, getInsights, getHabits, getHabitStats, predictMood } from '../api'
+import { useChartColors } from '../ThemeContext'
 
 const moodEmoji = (v) => {
     if (v >= 9) return '😄'
@@ -28,8 +29,8 @@ const ChartTooltip = ({ active, payload, label }) => {
 
 export default function Dashboard() {
     const navigate = useNavigate()
+    const colors = useChartColors()
     const [data, setData] = useState(null)
-    const [stats, setStats] = useState(null)
     const [mlStatus, setMlStatus] = useState(null)
     const [habits, setHabits] = useState([])
     const [habitStats, setHabitStats] = useState({})
@@ -40,32 +41,30 @@ export default function Dashboard() {
     useEffect(() => {
         const fetchAll = async () => {
             try {
-                const [dashRes, statsRes, mlRes, habitsRes, insightsRes] = await Promise.allSettled([
+                const [dashRes, mlRes, habitsRes, insightsRes] = await Promise.allSettled([
                     getDashboardData(),
-                    getStats(),
                     getPredictionStatus(),
                     getHabits(),
                     getInsights(),
                 ])
                 if (dashRes.status === 'fulfilled') setData(dashRes.value.data)
-                if (statsRes.status === 'fulfilled') setStats(statsRes.value.data)
                 if (mlRes.status === 'fulfilled') setMlStatus(mlRes.value.data)
                 if (insightsRes.status === 'fulfilled') {
                     const ins = insightsRes.value.data
                     setInsights(Array.isArray(ins) ? ins.slice(0, 3) : [])
                 }
 
-                // Fetch habit stats
+                // Fetch habit stats in parallel
                 if (habitsRes.status === 'fulfilled') {
                     const habitsData = habitsRes.value.data
                     setHabits(habitsData)
+                    const statsResults = await Promise.allSettled(
+                        habitsData.map(h => getHabitStats(h.id))
+                    )
                     const sMap = {}
-                    for (const h of habitsData) {
-                        try {
-                            const { data: s } = await getHabitStats(h.id)
-                            sMap[h.id] = s
-                        } catch { sMap[h.id] = null }
-                    }
+                    habitsData.forEach((h, i) => {
+                        sMap[h.id] = statsResults[i].status === 'fulfilled' ? statsResults[i].value.data : null
+                    })
                     setHabitStats(sMap)
                 }
 
@@ -100,7 +99,7 @@ export default function Dashboard() {
 
     const moodTrend = data?.mood_trend || []
     const todayMood = moodTrend.length > 0 ? moodTrend[moodTrend.length - 1]?.mood : null
-    const todayEnergy = data?.average_energy || null
+    const todayEnergy = moodTrend.length > 0 ? moodTrend[moodTrend.length - 1]?.energy : null
     const today = new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 
     return (
@@ -189,14 +188,14 @@ export default function Dashboard() {
                         <LineChart data={moodTrend}>
                             <XAxis
                                 dataKey="date"
-                                tick={{ fill: '#808080', fontSize: 12 }}
+                                tick={{ fill: colors.tick, fontSize: 12 }}
                                 tickFormatter={d => d.slice(5)}
                                 axisLine={false}
                                 tickLine={false}
                             />
                             <YAxis
                                 domain={[1, 10]}
-                                tick={{ fill: '#808080', fontSize: 12 }}
+                                tick={{ fill: colors.tick, fontSize: 12 }}
                                 axisLine={false}
                                 tickLine={false}
                             />
@@ -204,10 +203,10 @@ export default function Dashboard() {
                             <Line
                                 type="monotone"
                                 dataKey="mood"
-                                stroke="#000000"
+                                stroke={colors.line}
                                 strokeWidth={2}
-                                dot={{ r: 4, fill: '#000000' }}
-                                activeDot={{ r: 6, fill: '#000000', stroke: '#ffffff', strokeWidth: 2 }}
+                                dot={{ r: 4, fill: colors.line }}
+                                activeDot={{ r: 6, fill: colors.line, stroke: colors.bg, strokeWidth: 2 }}
                                 name="Mood"
                             />
                         </LineChart>

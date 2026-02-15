@@ -125,7 +125,7 @@ export default function ChatPage() {
                             <div className="flex justify-start mb-4">
                                 <div className="max-w-[80%]">
                                     <div className="flex items-start gap-3">
-                                        <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                        <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
                                             <Sparkles className="w-4 h-4 text-white" />
                                         </div>
                                         <div className="bg-gray-100 rounded-lg rounded-bl-sm p-4 flex-1">
@@ -143,7 +143,7 @@ export default function ChatPage() {
                 {loading && (
                     <div className="flex justify-start mb-4">
                         <div className="flex items-start gap-3">
-                            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center flex-shrink-0">
                                 <Sparkles className="w-4 h-4 text-white" />
                             </div>
                             <div className="bg-gray-100 rounded-lg rounded-bl-sm px-4 py-3 flex gap-1.5">
@@ -163,7 +163,8 @@ export default function ChatPage() {
                     <button
                         key={i}
                         onClick={() => handleSend(prompt)}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-full hover:bg-gray-50 text-gray-600 transition-colors"
+                        disabled={loading}
+                        className="px-3 py-2 text-sm border border-gray-200 rounded-full hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                         {prompt}
                     </button>
