@@ -1,0 +1,68 @@
+name: CI + Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-main
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    name: Build checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Backend compile check
+        run: python -m compileall backend
+
+  deploy:
+    name: Deploy to EC2
+    needs: checks
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Deploy over SSH
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          script: |
+            set -e
+            cd /home/ubuntu/brain
+
+            git pull --ff-only origin main
+
+            API_SECRET_KEY=$(grep -m1 '^API_SECRET_KEY=' backend/.env | cut -d= -f2-)
+
+            API_SECRET_KEY="$API_SECRET_KEY" docker-compose build
+            API_SECRET_KEY="$API_SECRET_KEY" docker-compose up -d
+
+            docker-compose ps
+            docker exec brain-backend-1 curl -fsS http://localhost:8000/api/health
