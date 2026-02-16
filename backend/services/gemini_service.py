@@ -6,7 +6,7 @@ Includes retry logic with exponential backoff and fallback responses.
 import time
 from typing import Optional
 
-from config import GEMINI_API_KEY
+from config import GEMINI_API_KEY, LLM_MODEL
 from utils.logger import log
 
 
@@ -19,6 +19,12 @@ class GeminiService:
     def __init__(self):
         self._model = None
         self._initialized = False
+        self._model_name = LLM_MODEL or "gemini-2.5-flash"
+        self._fallback_models = [
+            "gemini-2.5-flash",
+            "gemini-2.0-flash",
+            "gemini-2.0-flash-lite",
+        ]
 
     def _ensure_initialized(self):
         """Lazy initialization of the Gemini model."""
@@ -29,11 +35,36 @@ class GeminiService:
             import google.generativeai as genai
 
             genai.configure(api_key=GEMINI_API_KEY)
-            self._model = genai.GenerativeModel("gemini-2.0-flash")
+            self._model = genai.GenerativeModel(self._model_name)
             self._initialized = True
-            log.info("Gemini service initialized successfully")
+            log.info(f"Gemini service initialized successfully ({self._model_name})")
         except Exception as e:
             log.error(f"Gemini initialization failed: {e}")
+
+    def _try_fallback_model(self, prompt: str) -> Optional[str]:
+        """Try alternate Gemini models when current model is quota-limited."""
+        try:
+            import google.generativeai as genai
+
+            for model_name in self._fallback_models:
+                if model_name == self._model_name:
+                    continue
+                try:
+                    model = genai.GenerativeModel(model_name)
+                    response = model.generate_content(prompt)
+                    if response and getattr(response, "text", None):
+                        self._model = model
+                        self._model_name = model_name
+                        log.warning(
+                            f"Switched Gemini model to {model_name} after quota/rate issue"
+                        )
+                        return response.text
+                except Exception:
+                    continue
+        except Exception:
+            return None
+
+        return None
 
     def _generate_with_retry(self, prompt: str, max_retries: int = 3) -> str:
         """
@@ -54,8 +85,13 @@ class GeminiService:
 
                 # Rate limit — exponential backoff
                 if "429" in error_str or "rate" in error_str or "quota" in error_str:
-                    wait_time = (2 ** attempt) * 1  # 1s, 2s, 4s
-                    log.warning(f"Rate limit hit, waiting {wait_time}s (attempt {attempt + 1}/{max_retries})")
+                    fallback = self._try_fallback_model(prompt)
+                    if fallback:
+                        return fallback
+                    wait_time = (2**attempt) * 1  # 1s, 2s, 4s
+                    log.warning(
+                        f"Rate limit hit, waiting {wait_time}s (attempt {attempt + 1}/{max_retries})"
+                    )
                     time.sleep(wait_time)
                     continue
 
