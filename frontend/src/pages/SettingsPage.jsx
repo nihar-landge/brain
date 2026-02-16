@@ -28,17 +28,7 @@ export default function SettingsPage() {
     const [timezone, setTimezone] = useState('UTC')
     const [calendarStatus, setCalendarStatus] = useState(null)
     const toastTimerRef = useRef(null)
-
-    const timezoneOptions = [
-        'UTC',
-        'Asia/Kolkata',
-        'Europe/London',
-        'Europe/Berlin',
-        'America/New_York',
-        'America/Los_Angeles',
-        'Asia/Singapore',
-        'Australia/Sydney',
-    ]
+    const browserTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'
 
     const showToast = (msg, type = 'info') => {
         if (toastTimerRef.current) clearTimeout(toastTimerRef.current)
@@ -50,16 +40,31 @@ export default function SettingsPage() {
         getStats().then(r => setSysStats(r.data)).catch(() => {})
         getModelPerformance().then(r => setModels(r.data)).catch(() => {})
         listBackups().then(r => setBackups(r.data.backups || [])).catch(() => {})
-        getCalendarTimezone().then(r => setTimezone(r.data.timezone || 'UTC')).catch(() => {})
+        getCalendarTimezone()
+            .then(async (r) => {
+                const serverTz = r.data.timezone || 'UTC'
+                if (serverTz !== browserTimezone) {
+                    try {
+                        await updateCalendarTimezone(browserTimezone)
+                        setTimezone(browserTimezone)
+                    } catch {
+                        setTimezone(serverTz)
+                    }
+                } else {
+                    setTimezone(serverTz)
+                }
+            })
+            .catch(() => setTimezone(browserTimezone))
         getGoogleCalendarStatus().then(r => setCalendarStatus(r.data)).catch(() => {})
-    }, [])
+    }, [browserTimezone])
 
-    const handleTimezoneSave = async () => {
+    const handleTimezoneSync = async () => {
         try {
-            await updateCalendarTimezone(timezone)
-            showToast('Timezone updated', 'success')
+            await updateCalendarTimezone(browserTimezone)
+            setTimezone(browserTimezone)
+            showToast('Using browser timezone', 'success')
         } catch {
-            showToast('Failed to update timezone', 'error')
+            showToast('Failed to sync browser timezone', 'error')
         }
     }
 
@@ -238,15 +243,14 @@ export default function SettingsPage() {
                     </div>
 
                     <div>
-                        <label className="text-sm font-medium text-gray-700 block mb-2">Timezone</label>
+                        <label className="text-sm font-medium text-gray-700 block mb-2">Timezone (Browser based)</label>
                         <div className="flex flex-col sm:flex-row gap-2">
-                            <select className="input-field" value={timezone} onChange={e => setTimezone(e.target.value)}>
-                                {timezoneOptions.map(tz => (
-                                    <option key={tz} value={tz}>{tz}</option>
-                                ))}
-                            </select>
-                            <button className="btn-secondary" onClick={handleTimezoneSave}>Save</button>
+                            <input className="input-field" value={timezone} readOnly />
+                            <button className="btn-secondary" onClick={handleTimezoneSync}>Sync from browser</button>
                         </div>
+                        <p className="text-xs text-gray-500 mt-1">
+                            Browser detected: {browserTimezone}
+                        </p>
                     </div>
 
                     <div className="pt-1">
