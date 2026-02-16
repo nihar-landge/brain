@@ -17,6 +17,72 @@ const agentMeta = {
     multi: { icon: Users, label: 'Multi-Agent', color: 'bg-purple-500' },
 }
 
+function renderInlineText(text) {
+    const parts = text.split(/(\*\*[^*]+\*\*|\*[^*\n]+\*|`[^`]+`)/g).filter(Boolean)
+    return parts.map((part, idx) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+            return <strong key={idx} className="font-semibold text-gray-900">{part.slice(2, -2)}</strong>
+        }
+        if (part.startsWith('*') && part.endsWith('*')) {
+            return <em key={idx} className="italic text-gray-800">{part.slice(1, -1)}</em>
+        }
+        if (part.startsWith('`') && part.endsWith('`')) {
+            return <code key={idx} className="px-1.5 py-0.5 rounded bg-gray-200 text-gray-900 text-[0.85em]">{part.slice(1, -1)}</code>
+        }
+        return <span key={idx}>{part}</span>
+    })
+}
+
+function renderAiContent(content) {
+    const lines = String(content || '').split('\n').map((line) => line.trimEnd())
+    const blocks = []
+    let listItems = []
+
+    const flushList = () => {
+        if (listItems.length) {
+            blocks.push({ type: 'list', items: listItems })
+            listItems = []
+        }
+    }
+
+    for (const rawLine of lines) {
+        const line = rawLine.trim()
+        if (!line) {
+            flushList()
+            continue
+        }
+
+        if (/^[-*•]\s+/.test(line)) {
+            listItems.push(line.replace(/^[-*•]\s+/, ''))
+            continue
+        }
+
+        flushList()
+        if (/^#{1,3}\s+/.test(line)) {
+            blocks.push({ type: 'heading', text: line.replace(/^#{1,3}\s+/, '') })
+        } else {
+            blocks.push({ type: 'p', text: line })
+        }
+    }
+    flushList()
+
+    return blocks.map((block, idx) => {
+        if (block.type === 'heading') {
+            return <p key={idx} className="text-sm font-semibold text-gray-900 mt-1">{renderInlineText(block.text)}</p>
+        }
+        if (block.type === 'list') {
+            return (
+                <ul key={idx} className="list-disc pl-5 space-y-1 text-sm text-gray-800">
+                    {block.items.map((item, i) => (
+                        <li key={i}>{renderInlineText(item)}</li>
+                    ))}
+                </ul>
+            )
+        }
+        return <p key={idx} className="text-sm text-gray-800 leading-relaxed">{renderInlineText(block.text)}</p>
+    })
+}
+
 export default function ChatPage() {
     const [messages, setMessages] = useState([])
     const [input, setInput] = useState('')
@@ -143,9 +209,10 @@ export default function ChatPage() {
 
     const currentMode = agentMeta[mode]
     const ModeIcon = currentMode.icon
+    const showQuickPrompts = !loading && !messages.some((m) => m.role === 'user')
 
     return (
-        <div className="flex flex-col h-[calc(100dvh-10rem)] sm:h-[calc(100dvh-7rem)] max-w-3xl mx-auto">
+        <div className="flex flex-col h-[calc(100dvh-10rem)] sm:h-[calc(100dvh-7rem)] max-w-4xl mx-auto rounded-2xl border border-gray-200 bg-gradient-to-b from-white to-gray-100/50 p-3 sm:p-5 shadow-sm">
             {/* Header */}
             <div className="flex justify-between items-center mb-4">
                 <div className="flex items-center gap-3">
@@ -202,7 +269,7 @@ export default function ChatPage() {
             </div>
 
             {/* Messages Area */}
-            <div className="flex-1 overflow-y-auto space-y-4 pb-4">
+            <div className="flex-1 overflow-y-auto space-y-4 pb-4 pr-1">
                 {initialLoad ? (
                     <div className="flex items-center justify-center h-full">
                         <Loader2 className="w-5 h-5 text-gray-500 animate-spin" />
@@ -212,8 +279,8 @@ export default function ChatPage() {
                         {msg.role === 'user' ? (
                             /* User Message */
                             <div className="flex justify-end mb-4">
-                                <div className="max-w-[70%] bg-black text-white rounded-lg rounded-br-sm p-4">
-                                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                                <div className="max-w-[84%] sm:max-w-[74%] bg-black text-white rounded-2xl rounded-br-sm px-4 py-3 shadow-sm">
+                                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{msg.content}</p>
                                     <span className="text-xs text-gray-300 mt-2 block">{msg.time}</span>
                                 </div>
                             </div>
@@ -240,8 +307,8 @@ export default function ChatPage() {
                                                     {msg.agent === 'multi' && ' (Synthesized)'}
                                                 </span>
                                             )}
-                                            <div className="bg-gray-100 rounded-lg rounded-bl-sm p-4">
-                                                <p className="text-sm text-gray-900 whitespace-pre-wrap">{msg.content}</p>
+                                            <div className="bg-white/90 border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 shadow-sm backdrop-blur-sm space-y-2">
+                                                {renderAiContent(msg.content)}
                                                 <span className="text-xs text-gray-500 mt-2 block">{msg.time}</span>
                                             </div>
 
@@ -268,7 +335,7 @@ export default function ChatPage() {
                                                                             </div>
                                                                             <span className="text-xs font-medium text-gray-900">{pMeta.label}</span>
                                                                         </div>
-                                                                        <p className="text-xs text-gray-600 whitespace-pre-wrap">{p.response}</p>
+                                                                        <div className="text-xs text-gray-700 space-y-1">{renderAiContent(p.response)}</div>
                                                                     </div>
                                                                 )
                                                             })}
@@ -291,7 +358,7 @@ export default function ChatPage() {
                             <div className={`w-8 h-8 ${currentMode.color} rounded-full flex items-center justify-center flex-shrink-0`}>
                                 <ModeIcon className="w-4 h-4 text-white" />
                             </div>
-                            <div className="bg-gray-100 rounded-lg rounded-bl-sm px-4 py-3 flex gap-1.5">
+                            <div className="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-4 py-3 flex gap-1.5 shadow-sm">
                                 <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
                                 <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
                                 <div className="w-2 h-2 bg-gray-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
@@ -303,27 +370,29 @@ export default function ChatPage() {
             </div>
 
             {/* Quick Prompts */}
-            <div className="flex flex-wrap gap-2 mb-3">
-                {quickPrompts.map((prompt, i) => (
-                    <button
-                        key={i}
-                        onClick={() => handleSend(prompt)}
-                        disabled={loading}
-                        className="px-3 py-2 text-sm border border-gray-200 rounded-full hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        {prompt}
-                    </button>
-                ))}
-            </div>
+            {showQuickPrompts && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                    {quickPrompts.map((prompt, i) => (
+                        <button
+                            key={i}
+                            onClick={() => handleSend(prompt)}
+                            disabled={loading}
+                            className="px-3 py-2 text-sm border border-gray-200 bg-white rounded-full hover:bg-gray-100 text-gray-600 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        >
+                            {prompt}
+                        </button>
+                    ))}
+                </div>
+            )}
 
             {/* Input Area */}
-            <div className="flex gap-2 border-t border-gray-200 pt-4">
+            <div className="flex gap-2 border border-gray-200 bg-white rounded-2xl p-2 sm:p-3 shadow-sm">
                 <textarea
                     value={input}
                     onChange={e => setInput(e.target.value)}
                     onKeyDown={handleKeyPress}
                     placeholder={mode === 'multi' ? 'Ask all agents...' : mode === 'standard' ? 'Type your message...' : `Ask the ${currentMode.label}...`}
-                    className="input-field flex-1 resize-none"
+                    className="input-field flex-1 resize-none !border-0 !shadow-none !bg-transparent"
                     rows={1}
                     disabled={loading}
                 />
