@@ -12,8 +12,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
-from models.user import User
-from models.user import ChatHistory
+from models.user import User, ChatHistory
+from utils.auth import verify_api_key
 from services.gemini_service import gemini_service
 from services.smart_memory import SmartMemoryManager
 from utils.prompts import CHAT_SYSTEM_PROMPT
