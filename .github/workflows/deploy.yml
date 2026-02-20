@@ -64,6 +64,9 @@ jobs:
             
             git reset --hard origin/main
 
+            # Free up disk space by removing unused docker images, networks, and build cache
+            docker system prune -af
+
             # Use the existing backend/.env to resolve docker-compose variables securely
             docker-compose --env-file backend/.env build
             docker-compose --env-file backend/.env up -d
