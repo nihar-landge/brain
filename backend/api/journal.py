@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.journal import JournalEntry
 from services.data_manager import DataManager
 
@@ -60,11 +62,11 @@ class JournalEntryResponse(BaseModel):
 
 
 @router.post("", response_model=dict)
-async def create_journal_entry(entry: JournalEntryCreate, db: Session = Depends(get_db)):
+async def create_journal_entry(entry: JournalEntryCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Create a new journal entry with full data consistency."""
     data_mgr = DataManager(db)
     new_entry = data_mgr.create_journal_entry(
-        user_id=1,  # Default user
+        user_id=user.id,  # Default user
         content=entry.content,
         mood=entry.mood,
         energy_level=entry.energy_level,
@@ -81,7 +83,7 @@ async def get_journal_entries(
     start_date: Optional[str] = None,
     end_date: Optional[str] = None,
     limit: int = 50,
-    db: Session = Depends(get_db),
+    user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """Get journal entries with optional date filtering."""
     query = db.query(JournalEntry).filter(JournalEntry.user_id == 1)
@@ -111,7 +113,7 @@ async def get_journal_entries(
 
 
 @router.get("/{entry_id}", response_model=dict)
-async def get_journal_entry(entry_id: int, db: Session = Depends(get_db)):
+async def get_journal_entry(entry_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get specific journal entry."""
     entry = db.query(JournalEntry).get(entry_id)
     if not entry:
@@ -133,7 +135,7 @@ async def get_journal_entry(entry_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{entry_id}", response_model=dict)
 async def update_journal_entry(
-    entry_id: int, entry: JournalEntryUpdate, db: Session = Depends(get_db)
+    entry_id: int, entry: JournalEntryUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Update existing journal entry with data consistency."""
     data_mgr = DataManager(db)
@@ -147,7 +149,7 @@ async def update_journal_entry(
 
 
 @router.delete("/{entry_id}", response_model=dict)
-async def delete_journal_entry(entry_id: int, db: Session = Depends(get_db)):
+async def delete_journal_entry(entry_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Delete journal entry with cascade to all stores."""
     data_mgr = DataManager(db)
     deleted = data_mgr.delete_journal_entry(entry_id)
@@ -163,7 +165,7 @@ async def search_entries(
     query: str,
     limit: int = 10,
     mood_min: Optional[int] = None,
-    db: Session = Depends(get_db),
+    user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """Semantic search across journal entries using gemini-embedding-001."""
     data_mgr = DataManager(db)

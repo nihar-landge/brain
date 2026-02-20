@@ -59,10 +59,9 @@ jobs:
 
             git pull --ff-only origin main
 
-            API_SECRET_KEY=$(grep -m1 '^API_SECRET_KEY=' backend/.env | cut -d= -f2-)
-
-            API_SECRET_KEY="$API_SECRET_KEY" docker-compose build
-            API_SECRET_KEY="$API_SECRET_KEY" docker-compose up -d
+            # Use the existing backend/.env to resolve docker-compose variables securely
+            docker-compose --env-file backend/.env build
+            docker-compose --env-file backend/.env up -d
 
             docker-compose ps
             docker exec brain-backend-1 curl -fsS http://localhost:8000/api/health

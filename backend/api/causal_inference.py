@@ -9,6 +9,9 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from models.user import User
+from utils.auth import verify_api_key
+
 from utils.database import get_db
 from services.causal_inference_service import causal_inference_service
 
@@ -27,17 +30,17 @@ class CausalAnalysisRequest(BaseModel):
 
 
 @router.get("/correlations", response_model=dict)
-async def get_correlations(days: int = 90, db: Session = Depends(get_db)):
+async def get_correlations(days: int = 90, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """
     Get correlations between all tracked variables and mood.
     Returns sorted correlations with significance indicators.
     """
-    return causal_inference_service.get_correlations(db, user_id=1, days=days)
+    return causal_inference_service.get_correlations(db, user_id=user.id, days=days)
 
 
 @router.post("/analyze", response_model=dict)
 async def run_causal_analysis(
-    data: CausalAnalysisRequest, db: Session = Depends(get_db)
+    data: CausalAnalysisRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """
     Run causal inference analysis for a specific treatment -> outcome pair.
@@ -45,25 +48,25 @@ async def run_causal_analysis(
     """
     return causal_inference_service.get_causal_analysis(
         db,
-        user_id=1,
+        user_id=user.id,
         treatment=data.treatment,
         outcome=data.outcome,
     )
 
 
 @router.get("/counterfactuals", response_model=list)
-async def get_counterfactuals(db: Session = Depends(get_db)):
+async def get_counterfactuals(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """
     Generate "what if" counterfactual scenarios based on user data.
     E.g., "If you slept 8 hours instead of 6, mood would be ~7.2 instead of 5.8"
     """
-    return causal_inference_service.generate_counterfactuals(db, user_id=1)
+    return causal_inference_service.generate_counterfactuals(db, user_id=user.id)
 
 
 @router.get("/experiments", response_model=list)
-async def suggest_experiments(db: Session = Depends(get_db)):
+async def suggest_experiments(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """
     Suggest self-experiments based on significant correlations.
     Each experiment has a hypothesis, protocol, and duration.
     """
-    return causal_inference_service.suggest_experiments(db, user_id=1)
+    return causal_inference_service.suggest_experiments(db, user_id=user.id)

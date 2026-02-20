@@ -1,0 +1,32 @@
+{
+    # Use internal CA for local/IP self-signed certs
+    # If a real domain is provided, omit this to use Let's Encrypt
+    auto_https disable_certs
+}
+
+:80, :443 {
+    tls internal
+
+    root * /srv
+    encode gzip zstd
+
+    # Proxy API requests (no basic auth required for backend API)
+    handle /api/* {
+        reverse_proxy backend:8000
+    }
+
+    # Everything else (Frontend SPA protected by Basic Auth)
+    handle {
+        basicauth {
+            CURRENT_USER CURRENT_HASH
+        }
+        try_files {path} /index.html
+        file_server
+    }
+    
+    # Cache static assets
+    @static {
+        path *.js *.css *.png *.jpg *.jpeg *.gif *.ico *.svg *.woff *.woff2 *.ttf *.eot
+    }
+    header @static Cache-Control "public, max-age=604800, immutable"
+}

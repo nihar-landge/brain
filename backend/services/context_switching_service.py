@@ -3,7 +3,7 @@ Context Switching Service - Time tracking, deep work detection, cognitive load a
 Manages context logs, identifies deep work blocks, and provides productivity insights.
 """
 
-from datetime import datetime, timedelta, time as dt_time
+from datetime import datetime, timezone, timezone, timedelta, time as dt_time
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -44,7 +44,7 @@ class ContextSwitchingService:
             user_id=user_id,
             context_name=context_name,
             context_type=context_type,
-            started_at=datetime.utcnow(),
+            started_at=datetime.now(timezone.utc),
             task_complexity=task_complexity,
             habit_id=habit_id,
             task_id=task_id,
@@ -80,7 +80,7 @@ class ContextSwitchingService:
         if not ctx:
             return None
 
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         ctx.ended_at = now
         ctx.duration_minutes = int((now - ctx.started_at).total_seconds() / 60)
 
@@ -116,7 +116,7 @@ class ContextSwitchingService:
                 task.spent_minutes = (task.spent_minutes or 0) + (
                     ctx.duration_minutes or 0
                 )
-                task.updated_at = datetime.utcnow()
+                task.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(ctx)
@@ -161,7 +161,7 @@ class ContextSwitchingService:
         if not active:
             return None
 
-        elapsed = int((datetime.utcnow() - active.started_at).total_seconds() / 60)
+        elapsed = int((datetime.now(timezone.utc) - active.started_at).total_seconds() / 60)
         result = {
             "id": active.id,
             "context_name": active.context_name,
@@ -217,7 +217,7 @@ class ContextSwitchingService:
             context_log_id=ctx.id,
             block_date=ctx.started_at.date(),
             start_time=ctx.started_at.time(),
-            end_time=ctx.ended_at.time() if ctx.ended_at else datetime.utcnow().time(),
+            end_time=ctx.ended_at.time() if ctx.ended_at else datetime.now(timezone.utc).time(),
             duration_minutes=ctx.duration_minutes,
             interruptions_count=0,
             flow_state_achieved=ctx.duration_minutes >= 90,

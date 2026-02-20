@@ -6,7 +6,7 @@ Letta stores only references. All writes go through this manager to
 ensure consistency across all stores.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -125,7 +125,7 @@ class DataManager:
         for key, value in updates.items():
             if hasattr(entry, key):
                 setattr(entry, key, value)
-        entry.updated_at = datetime.utcnow()
+        entry.updated_at = datetime.now(timezone.utc)
         self.db.commit()
 
         # 2. Update ChromaDB index

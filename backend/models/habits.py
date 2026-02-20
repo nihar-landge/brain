@@ -2,7 +2,7 @@
 Habit and HabitLog models.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -51,7 +51,7 @@ class Habit(Base):
     # Relations — every habit must belong to a goal (Goal → Habit → Session hierarchy)
     goal_id = Column(Integer, ForeignKey("goals.id", ondelete="CASCADE"), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class HabitLog(Base):
@@ -87,7 +87,7 @@ class HabitLog(Base):
     # Why if not completed
     skip_reason = Column(String(100), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_habit_logs_date", "log_date"),

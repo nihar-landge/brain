@@ -13,6 +13,8 @@ import {
     getCorrelations, getCounterfactuals, getTasks,
 } from '../api'
 import { useChartColors } from '../ThemeContext'
+import { StatCard } from '../components/StatCard'
+import { ChartTooltip } from '../components/ChartTooltip'
 
 const moodEmoji = (v) => {
     if (v >= 9) return '😄'
@@ -22,37 +24,6 @@ const moodEmoji = (v) => {
     return '😢'
 }
 
-const ChartTooltip = ({ active, payload, label }) => {
-    if (!active || !payload?.length) return null
-    return (
-        <div className="bg-[var(--bg-primary)] border border-[var(--border-primary)] rounded-lg px-3 py-2 text-xs shadow-lg">
-            <p className="text-[var(--text-muted)]">{label}</p>
-            {payload.map((p, i) => (
-                <p key={i} className="text-[var(--text-primary)] font-medium mt-0.5">
-                    {p.name}: {typeof p.value === 'number' ? p.value.toFixed(1) : p.value}
-                </p>
-            ))}
-        </div>
-    )
-}
-
-function StatCard({ label, value, sub, icon: Icon, onClick }) {
-    return (
-        <button
-            onClick={onClick}
-            className="card p-3 sm:p-4 text-left hover:bg-[var(--bg-secondary)] transition-colors w-full"
-        >
-            <div className="flex items-start justify-between">
-                <div className="min-w-0">
-                    <p className="text-[10px] sm:text-xs text-[var(--text-muted)] uppercase tracking-wide truncate">{label}</p>
-                    <p className="text-xl sm:text-2xl font-bold text-[var(--text-primary)] mt-0.5 sm:mt-1">{value}</p>
-                    {sub && <p className="text-[10px] sm:text-xs text-[var(--text-muted)] mt-0.5 sm:mt-1 truncate">{sub}</p>}
-                </div>
-                {Icon && <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[var(--text-muted)] flex-shrink-0" />}
-            </div>
-        </button>
-    )
-}
 
 export default function Dashboard() {
     const navigate = useNavigate()

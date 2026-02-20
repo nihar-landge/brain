@@ -3,7 +3,7 @@ Social Graph models: People, SocialInteraction, SocialBatteryLog.
 Tracks relationships, social interactions, and their impact on mood/energy.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -52,7 +52,7 @@ class Person(Base):
     # Status
     is_active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (Index("idx_people_user", "user_id"),)
 
@@ -111,7 +111,7 @@ class SocialInteraction(Base):
 
     notes = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_social_interactions_date", "user_id", "interaction_date"),
@@ -142,4 +142,4 @@ class SocialBatteryLog(Base):
     # Optimal ratio for this user (calculated)
     optimal_solo_ratio = Column(Float, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

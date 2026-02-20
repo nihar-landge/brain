@@ -8,7 +8,7 @@ Manages memory across 4 tiers:
 - Tier 4: Compressed Summaries (weekly/monthly/yearly)
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -17,6 +17,7 @@ from models.journal import JournalEntry, MoodLog
 from models.user import LettaMemory
 from utils.embeddings import embed_query
 from config import get_chroma_client, get_or_create_collection, GEMINI_API_KEY
+from utils.prompts import SMART_MEMORY_SUMMARY_PROMPT
 
 
 class SmartMemoryManager:
@@ -179,17 +180,11 @@ Current Context (This Week):
             model = genai.GenerativeModel("gemini-2.0-flash")
 
             entries_text = "\n".join(e.content[:200] for e in entries[:10])
-            prompt = f"""Summarize these {len(entries)} journal entries into a concise {summary_type} summary.
-Focus on:
-- Overall mood trends
-- Key events
-- Important decisions
-- Pattern observations
-
-Entries:
-{entries_text}
-
-Provide a 200-word maximum summary."""
+            prompt = SMART_MEMORY_SUMMARY_PROMPT.format(
+                num_entries=len(entries),
+                summary_type=summary_type,
+                entries_text=entries_text
+            )
 
             response = model.generate_content(prompt)
             return response.text
@@ -264,7 +259,7 @@ Provide a 200-word maximum summary."""
 
         if existing:
             existing.memory_content = content
-            existing.updated_at = datetime.utcnow()
+            existing.updated_at = datetime.now(timezone.utc)
         else:
             mem = LettaMemory(
                 user_id=user_id,

@@ -16,7 +16,8 @@ from utils.database import get_db
 from models.journal import JournalEntry, MoodLog
 from models.habits import Habit, HabitLog
 from models.goals import Goal, GoalMilestone
-from models.user import ChatHistory
+from models.user import ChatHistory, User
+from utils.auth import verify_api_key
 
 router = APIRouter()
 
@@ -27,9 +28,9 @@ BACKUP_DIR = "./data/backups"
 
 
 @router.get("/export", response_model=dict)
-async def export_data(db: Session = Depends(get_db)):
+async def export_data(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Export all user data as JSON."""
-    user_id = 1
+    user_id = user.id
 
     entries = db.query(JournalEntry).filter(JournalEntry.user_id == user_id).all()
     moods = db.query(MoodLog).filter(MoodLog.user_id == user_id).all()
@@ -114,14 +115,14 @@ async def export_data(db: Session = Depends(get_db)):
 
 
 @router.post("/import", response_model=dict)
-async def import_data(data: dict, db: Session = Depends(get_db)):
+async def import_data(data: dict, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Import data from JSON export."""
     imported = {"entries": 0, "habits": 0, "goals": 0}
 
     # Import journal entries
     for entry_data in data.get("journal_entries", []):
         entry = JournalEntry(
-            user_id=1,
+            user_id=user.id,
             content=entry_data["content"],
             title=entry_data.get("title"),
             mood=entry_data.get("mood"),
@@ -141,7 +142,7 @@ async def import_data(data: dict, db: Session = Depends(get_db)):
     # Import habits
     for habit_data in data.get("habits", []):
         habit = Habit(
-            user_id=1,
+            user_id=user.id,
             habit_name=habit_data["name"],
             habit_description=habit_data.get("description"),
             habit_category=habit_data.get("category"),
@@ -155,7 +156,7 @@ async def import_data(data: dict, db: Session = Depends(get_db)):
     # Import goals
     for goal_data in data.get("goals", []):
         goal = Goal(
-            user_id=1,
+            user_id=user.id,
             goal_title=goal_data["title"],
             goal_description=goal_data.get("description"),
             goal_category=goal_data.get("category"),

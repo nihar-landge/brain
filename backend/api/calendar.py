@@ -17,6 +17,8 @@ from models.habits import Habit
 from models.user import User
 from services.google_calendar_service import google_calendar_service
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 
 router = APIRouter()
 public_router = APIRouter()
@@ -30,10 +32,10 @@ class TimezoneUpdate(BaseModel):
 async def get_calendar_events(
     start: Optional[str] = Query(None, description="ISO datetime start"),
     end: Optional[str] = Query(None, description="ISO datetime end"),
-    db: Session = Depends(get_db),
+    user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """Return merged calendar events from tasks + context sessions."""
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     start_dt = datetime.fromisoformat(start) if start else (now - timedelta(days=7))
     end_dt = datetime.fromisoformat(end) if end else (now + timedelta(days=21))
 
@@ -158,7 +160,7 @@ async def get_calendar_events(
 
 
 @router.get("/timezone", response_model=dict)
-async def get_timezone(db: Session = Depends(get_db)):
+async def get_timezone(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == 1).first()
     if not user:
         user = User(id=1, username="default_user", timezone="UTC")
@@ -170,20 +172,20 @@ async def get_timezone(db: Session = Depends(get_db)):
 
 
 @router.put("/timezone", response_model=dict)
-async def update_timezone(data: TimezoneUpdate, db: Session = Depends(get_db)):
+async def update_timezone(data: TimezoneUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == 1).first()
     if not user:
         user = User(id=1, username="default_user")
         db.add(user)
 
     user.timezone = data.timezone
-    user.last_active_at = datetime.utcnow()
+    user.last_active_at = datetime.now(timezone.utc)
     db.commit()
     return {"status": "success", "timezone": user.timezone}
 
 
 @router.get("/google/status", response_model=dict)
-async def google_status(db: Session = Depends(get_db)):
+async def google_status(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     integration = (
         db.query(CalendarIntegration)
         .filter(
@@ -206,12 +208,12 @@ async def google_status(db: Session = Depends(get_db)):
 async def google_auth_url():
     if not google_calendar_service.is_configured():
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
-    return {"auth_url": google_calendar_service.get_auth_url(user_id=1)}
+    return {"auth_url": google_calendar_service.get_auth_url(user_id=user.id)}
 
 
 @public_router.get("/google/callback", response_model=dict)
 async def google_callback(
-    code: str, state: Optional[str] = None, db: Session = Depends(get_db)
+    code: str, state: Optional[str] = None, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     if not google_calendar_service.is_configured():
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
@@ -222,15 +224,15 @@ async def google_callback(
 
 
 @router.post("/google/disconnect", response_model=dict)
-async def google_disconnect(db: Session = Depends(get_db)):
-    await google_calendar_service.disconnect(db, user_id=1)
+async def google_disconnect(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
+    await google_calendar_service.disconnect(db, user_id=user.id)
     return {"status": "success", "message": "Google Calendar disconnected"}
 
 
 @router.post("/google/sync", response_model=dict)
-async def google_sync(db: Session = Depends(get_db)):
+async def google_sync(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     if not google_calendar_service.is_configured():
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
 
-    result = await google_calendar_service.sync_all(db, user_id=1)
+    result = await google_calendar_service.sync_all(db, user_id=user.id)
     return {"status": "success", **result}

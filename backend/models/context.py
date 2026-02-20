@@ -3,7 +3,7 @@ Context Switching models: ContextLog, DeepWorkBlock.
 Tracks task/context switches, cognitive load, and deep work sessions.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -93,7 +93,7 @@ class ContextLog(Base):
     # Notes
     notes = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (Index("idx_context_logs_user_date", "user_id", "started_at"),)
 
@@ -126,6 +126,6 @@ class DeepWorkBlock(Base):
     # What made it work
     success_factors = Column(JSON, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (Index("idx_deep_work_user_date", "user_id", "block_date"),)

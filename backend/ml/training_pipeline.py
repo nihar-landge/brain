@@ -2,7 +2,7 @@
 Training Pipeline - Automated model training and retraining.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy.orm import Session
 
@@ -30,6 +30,6 @@ class TrainingPipeline:
 
         return {
             "status": "completed",
-            "trained_at": datetime.utcnow().isoformat(),
+            "trained_at": datetime.now(timezone.utc).isoformat(),
             "results": results,
         }

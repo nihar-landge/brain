@@ -5,7 +5,7 @@ Suggestion flow: rules first, then AI re-ranking over user items.
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -13,6 +13,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.dopamine import DopamineItem, DopamineEvent
 from config import GEMINI_API_KEY
 from services.gemini_service import gemini_service
@@ -116,9 +118,9 @@ def _seed_default_items(db: Session, user_id: int = 1):
 
 
 @router.get("/items", response_model=List[dict])
-async def get_dopamine_items(active_only: bool = True, db: Session = Depends(get_db)):
+async def get_dopamine_items(active_only: bool = True, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """List user dopamine items (auto-seeded on first use)."""
-    _seed_default_items(db, user_id=1)
+    _seed_default_items(db, user_id=user.id)
 
     query = db.query(DopamineItem).filter(DopamineItem.user_id == 1)
     if active_only:
@@ -141,8 +143,8 @@ async def get_dopamine_items(active_only: bool = True, db: Session = Depends(get
 
 
 @router.post("/items", response_model=dict)
-async def create_dopamine_item(data: DopamineItemCreate, db: Session = Depends(get_db)):
-    item = DopamineItem(user_id=1, **data.model_dump())
+async def create_dopamine_item(data: DopamineItemCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
+    item = DopamineItem(user_id=user.id, **data.model_dump())
     db.add(item)
     db.commit()
     db.refresh(item)
@@ -151,7 +153,7 @@ async def create_dopamine_item(data: DopamineItemCreate, db: Session = Depends(g
 
 @router.put("/items/{item_id}", response_model=dict)
 async def update_dopamine_item(
-    item_id: int, updates: DopamineItemUpdate, db: Session = Depends(get_db)
+    item_id: int, updates: DopamineItemUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     item = (
         db.query(DopamineItem)
@@ -163,13 +165,13 @@ async def update_dopamine_item(
 
     for key, value in updates.model_dump(exclude_unset=True).items():
         setattr(item, key, value)
-    item.updated_at = datetime.utcnow()
+    item.updated_at = datetime.now(timezone.utc)
     db.commit()
     return {"status": "success", "message": "Dopamine item updated"}
 
 
 @router.delete("/items/{item_id}", response_model=dict)
-async def delete_dopamine_item(item_id: int, db: Session = Depends(get_db)):
+async def delete_dopamine_item(item_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     item = (
         db.query(DopamineItem)
         .filter(DopamineItem.id == item_id, DopamineItem.user_id == 1)
@@ -273,9 +275,9 @@ def _ai_rerank_options(
 
 
 @router.post("/suggest", response_model=dict)
-async def suggest_dopamine_item(data: SuggestRequest, db: Session = Depends(get_db)):
+async def suggest_dopamine_item(data: SuggestRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Suggest dopamine-menu choices based on trigger and current state."""
-    _seed_default_items(db, user_id=1)
+    _seed_default_items(db, user_id=user.id)
 
     preferred_categories = _categories_for_trigger(
         data.trigger_type,
@@ -325,7 +327,7 @@ async def suggest_dopamine_item(data: SuggestRequest, db: Session = Depends(get_
     )
 
     event = DopamineEvent(
-        user_id=1,
+        user_id=user.id,
         trigger_type=data.trigger_type,
         context_log_id=data.context_log_id,
         accepted=False,
@@ -346,15 +348,15 @@ async def suggest_dopamine_item(data: SuggestRequest, db: Session = Depends(get_
 
 
 @router.post("/events", response_model=dict)
-async def create_event(data: EventCreate, db: Session = Depends(get_db)):
+async def create_event(data: EventCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     event = DopamineEvent(
-        user_id=1,
+        user_id=user.id,
         trigger_type=data.trigger_type,
         context_log_id=data.context_log_id,
         dopamine_item_id=data.dopamine_item_id,
         accepted=data.accepted,
         completed=data.completed,
-        acted_at=datetime.utcnow() if (data.accepted or data.completed) else None,
+        acted_at=datetime.now(timezone.utc) if (data.accepted or data.completed) else None,
     )
     db.add(event)
     db.commit()
@@ -364,7 +366,7 @@ async def create_event(data: EventCreate, db: Session = Depends(get_db)):
 
 @router.put("/events/{event_id}", response_model=dict)
 async def update_event(
-    event_id: int, updates: EventUpdate, db: Session = Depends(get_db)
+    event_id: int, updates: EventUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     event = (
         db.query(DopamineEvent)
@@ -379,7 +381,7 @@ async def update_event(
         setattr(event, key, value)
 
     if update_data.get("accepted") is True or update_data.get("completed") is True:
-        event.acted_at = datetime.utcnow()
+        event.acted_at = datetime.now(timezone.utc)
 
     db.commit()
     return {"status": "success", "message": "Event updated"}

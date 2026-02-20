@@ -7,13 +7,16 @@ from typing import Optional, List
 from datetime import datetime
 
 from fastapi import APIRouter, Depends
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
 from models.user import ChatHistory
 from services.gemini_service import gemini_service
 from services.smart_memory import SmartMemoryManager
+from utils.prompts import CHAT_SYSTEM_PROMPT
 
 router = APIRouter()
 
@@ -35,14 +38,14 @@ class ChatResponse(BaseModel):
 
 
 @router.post("", response_model=dict)
-async def chat(msg: ChatMessage, db: Session = Depends(get_db)):
+async def chat(msg: ChatMessage, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """
     Send message to AI assistant.
     Uses tiered memory search (Fix #4) and Gemini for responses.
     """
     # 1. Search for relevant context using Smart Memory (Fix #4)
     memory_mgr = SmartMemoryManager(db)
-    search_results = memory_mgr.smart_search_with_fallback(msg.message, user_id=1)
+    search_results = memory_mgr.smart_search_with_fallback(msg.message, user_id=user.id)
 
     # 2. Build context from all tiers
     context_parts = []
@@ -63,47 +66,44 @@ async def chat(msg: ChatMessage, db: Session = Depends(get_db)):
     context = "\n\n".join(context_parts) if context_parts else "No previous context found."
 
     # 3. Generate response using Gemini
-    system_prompt = """You are a personal AI assistant with long-term memory.
-You have access to the user's journal entries, mood history, habits, and goals.
-Provide personalized, supportive, and insightful responses.
-Reference specific past entries when relevant."""
+    system_prompt = CHAT_SYSTEM_PROMPT
 
-    response = gemini_service.generate_response(
+    response = gemini_service.generate_stream(
         user_query=msg.message,
         context=context,
         system_prompt=system_prompt,
     )
 
-    # 4. Save to chat history
-    # Save user message
-    user_msg = ChatHistory(
-        user_id=1,
-        role="user",
-        message=msg.message,
-        model_used="gemini-2.0-flash",
-    )
-    db.add(user_msg)
+    async def event_generator():
+        full_response = ""
+        for chunk in response:
+            full_response += chunk
+            yield chunk
 
-    # Save assistant response
-    assistant_msg = ChatHistory(
-        user_id=1,
-        role="assistant",
-        message=response,
-        sources=search_results.get("archival", [])[:3],
-        model_used="gemini-2.0-flash",
-    )
-    db.add(assistant_msg)
-    db.commit()
+        # Save to chat history after streaming completes
+        user_msg = ChatHistory(
+            user_id=user.id,
+            role="user",
+            message=msg.message,
+            model_used="gemini-2.0-flash",
+        )
+        db.add(user_msg)
 
-    return {
-        "response": response,
-        "sources": search_results.get("archival", [])[:3],
-        "total_context_found": search_results.get("total_found", 0),
-    }
+        assistant_msg = ChatHistory(
+            user_id=user.id,
+            role="assistant",
+            message=full_response,
+            sources=search_results.get("archival", [])[:3],
+            model_used="gemini-2.0-flash",
+        )
+        db.add(assistant_msg)
+        db.commit()
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
 
 
 @router.get("/history", response_model=List[dict])
-async def get_chat_history(limit: int = 20, db: Session = Depends(get_db)):
+async def get_chat_history(limit: int = 20, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get recent chat history."""
     messages = (
         db.query(ChatHistory)
@@ -125,7 +125,7 @@ async def get_chat_history(limit: int = 20, db: Session = Depends(get_db)):
 
 
 @router.delete("/clear", response_model=dict)
-async def clear_chat_history(db: Session = Depends(get_db)):
+async def clear_chat_history(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Clear all chat history for the user."""
     deleted = db.query(ChatHistory).filter(ChatHistory.user_id == 1).delete()
     db.commit()

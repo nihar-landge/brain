@@ -2,7 +2,7 @@
 Journal Entry, Event, Decision, Mood Log, Prediction, and Insight models.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -54,8 +54,8 @@ class JournalEntry(Base):
     embedding_generated_at = Column(DateTime, nullable=True)
 
     # Metadata
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
     deleted_at = Column(DateTime, nullable=True)  # Soft delete
 
     __table_args__ = (
@@ -85,7 +85,7 @@ class Event(Base):
 
     people = Column(JSON, nullable=True)  # Added missing field
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Decision(Base):
@@ -124,8 +124,8 @@ class Decision(Base):
     reversal_date = Column(Date, nullable=True)
     reversal_reason = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
 
 
 class MoodLog(Base):
@@ -146,7 +146,7 @@ class MoodLog(Base):
     mood_tags = Column(JSON, nullable=True)
     trigger = Column(Text, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_mood_logs_date", "log_date"),
@@ -177,7 +177,7 @@ class Prediction(Base):
     model_name = Column(String(50), nullable=True)
     model_version = Column(String(20), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Insight(Base):
@@ -204,7 +204,7 @@ class Insight(Base):
     dismissed = Column(Boolean, default=False)
     helpful_rating = Column(Integer, CheckConstraint("helpful_rating >= 1 AND helpful_rating <= 5"), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     expires_at = Column(DateTime, nullable=True)
 
 
@@ -233,7 +233,7 @@ class MLModel(Base):
     model_file_path = Column(String(500), nullable=True)
     is_active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class MLFeature(Base):
@@ -243,7 +243,7 @@ class MLFeature(Base):
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     feature_date = Column(Date, nullable=False)
     features = Column(JSON, nullable=False)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_ml_features_date", "feature_date"),

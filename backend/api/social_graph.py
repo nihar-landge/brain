@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.social import Person, SocialInteraction, SocialBatteryLog
 from services.social_graph_service import social_graph_service
 
@@ -61,7 +63,7 @@ class ProcessEntryRequest(BaseModel):
 
 
 @router.get("/people", response_model=list)
-async def list_people(active_only: bool = True, db: Session = Depends(get_db)):
+async def list_people(active_only: bool = True, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """List all tracked people."""
     query = db.query(Person).filter(Person.user_id == 1)
     if active_only:
@@ -88,12 +90,12 @@ async def list_people(active_only: bool = True, db: Session = Depends(get_db)):
 
 
 @router.post("/people", response_model=dict)
-async def create_person(data: PersonCreate, db: Session = Depends(get_db)):
+async def create_person(data: PersonCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Manually add a person to the social graph."""
     from datetime import datetime
 
     person = Person(
-        user_id=1,
+        user_id=user.id,
         name=data.name,
         relationship_type=data.relationship_type,
         tags=data.tags,
@@ -108,7 +110,7 @@ async def create_person(data: PersonCreate, db: Session = Depends(get_db)):
 
 @router.put("/people/{person_id}", response_model=dict)
 async def update_person(
-    person_id: int, data: PersonUpdate, db: Session = Depends(get_db)
+    person_id: int, data: PersonUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Update a person's details."""
     person = (
@@ -131,7 +133,7 @@ async def update_person(
 
 
 @router.delete("/people/{person_id}", response_model=dict)
-async def delete_person(person_id: int, db: Session = Depends(get_db)):
+async def delete_person(person_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Deactivate a person (soft delete)."""
     person = (
         db.query(Person).filter(Person.id == person_id, Person.user_id == 1).first()
@@ -148,7 +150,7 @@ async def delete_person(person_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/interactions", response_model=dict)
-async def create_interaction(data: InteractionCreate, db: Session = Depends(get_db)):
+async def create_interaction(data: InteractionCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Log a social interaction."""
     from datetime import datetime
 
@@ -161,7 +163,7 @@ async def create_interaction(data: InteractionCreate, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Person not found")
 
     interaction = SocialInteraction(
-        user_id=1,
+        user_id=user.id,
         person_id=data.person_id,
         interaction_date=datetime.strptime(data.interaction_date, "%Y-%m-%d").date(),
         interaction_type=data.interaction_type,
@@ -192,7 +194,7 @@ async def create_interaction(data: InteractionCreate, db: Session = Depends(get_
 async def list_interactions(
     person_id: Optional[int] = None,
     limit: int = 50,
-    db: Session = Depends(get_db),
+    user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """List social interactions, optionally filtered by person."""
     query = db.query(SocialInteraction).filter(SocialInteraction.user_id == 1)
@@ -226,32 +228,32 @@ async def list_interactions(
 
 
 @router.get("/graph", response_model=dict)
-async def get_social_graph(db: Session = Depends(get_db)):
+async def get_social_graph(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get the full social graph data for visualization."""
-    return social_graph_service.get_social_graph(db, user_id=1)
+    return social_graph_service.get_social_graph(db, user_id=user.id)
 
 
 @router.get("/analysis", response_model=dict)
-async def get_network_analysis(db: Session = Depends(get_db)):
+async def get_network_analysis(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get NetworkX-based network analysis metrics."""
-    return social_graph_service.get_network_analysis(db, user_id=1)
+    return social_graph_service.get_network_analysis(db, user_id=user.id)
 
 
 @router.get("/toxic-patterns", response_model=list)
-async def get_toxic_patterns(db: Session = Depends(get_db)):
+async def get_toxic_patterns(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Detect potentially toxic or draining relationship patterns."""
-    return social_graph_service.detect_toxic_patterns(db, user_id=1)
+    return social_graph_service.detect_toxic_patterns(db, user_id=user.id)
 
 
 # ======================== SOCIAL BATTERY ========================
 
 
 @router.post("/battery", response_model=dict)
-async def log_battery(data: SocialBatteryCreate, db: Session = Depends(get_db)):
+async def log_battery(data: SocialBatteryCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Log current social battery level."""
     log_entry = social_graph_service.log_social_battery(
         db,
-        user_id=1,
+        user_id=user.id,
         battery_level=data.battery_level,
         solo_minutes=data.solo_time_minutes,
         social_minutes=data.social_time_minutes,
@@ -264,9 +266,9 @@ async def log_battery(data: SocialBatteryCreate, db: Session = Depends(get_db)):
 
 
 @router.get("/battery/history", response_model=list)
-async def get_battery_history(days: int = 30, db: Session = Depends(get_db)):
+async def get_battery_history(days: int = 30, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get social battery history."""
-    return social_graph_service.get_social_battery_history(db, user_id=1, days=days)
+    return social_graph_service.get_social_battery_history(db, user_id=user.id, days=days)
 
 
 # ======================== AUTO-EXTRACTION ========================
@@ -274,8 +276,8 @@ async def get_battery_history(days: int = 30, db: Session = Depends(get_db)):
 
 @router.post("/process-entry", response_model=dict)
 async def process_journal_entry(
-    data: ProcessEntryRequest, db: Session = Depends(get_db)
+    data: ProcessEntryRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Process a journal entry to extract people and interactions via Gemini NER."""
-    social_graph_service.process_journal_entry(db, entry_id=data.entry_id, user_id=1)
+    social_graph_service.process_journal_entry(db, entry_id=data.entry_id, user_id=user.id)
     return {"status": "processed", "entry_id": data.entry_id}

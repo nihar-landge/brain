@@ -75,11 +75,11 @@ class GoogleCalendarService:
         integration.client_id = GOOGLE_CLIENT_ID
         integration.client_secret = GOOGLE_CLIENT_SECRET
         integration.scopes = GOOGLE_CALENDAR_SCOPES
-        integration.token_expiry = datetime.utcnow() + timedelta(
+        integration.token_expiry = datetime.now(timezone.utc) + timedelta(
             seconds=data.get("expires_in", 3600)
         )
         integration.is_connected = True
-        integration.updated_at = datetime.utcnow()
+        integration.updated_at = datetime.now(timezone.utc)
 
         db.commit()
         db.refresh(integration)
@@ -123,7 +123,7 @@ class GoogleCalendarService:
             creds.refresh(Request())
             integration.access_token = creds.token
             integration.token_expiry = creds.expiry
-            integration.updated_at = datetime.utcnow()
+            integration.updated_at = datetime.now(timezone.utc)
             db.commit()
 
         service = build("calendar", "v3", credentials=creds, cache_discovery=False)
@@ -151,7 +151,7 @@ class GoogleCalendarService:
         for item in cal_list.get("items", []):
             if item.get("summary") == target_name:
                 integration.calendar_id = item.get("id")
-                integration.updated_at = datetime.utcnow()
+                integration.updated_at = datetime.now(timezone.utc)
                 db.commit()
                 return integration.calendar_id
 
@@ -161,7 +161,7 @@ class GoogleCalendarService:
             .execute()
         )
         integration.calendar_id = created.get("id")
-        integration.updated_at = datetime.utcnow()
+        integration.updated_at = datetime.now(timezone.utc)
         db.commit()
         return integration.calendar_id
 
@@ -174,7 +174,7 @@ class GoogleCalendarService:
         integration.access_token = None
         integration.refresh_token = None
         integration.calendar_id = None
-        integration.updated_at = datetime.utcnow()
+        integration.updated_at = datetime.now(timezone.utc)
         db.commit()
 
     async def upsert_task_event(self, db, task, user_id: int = 1) -> Optional[str]:
@@ -223,7 +223,7 @@ class GoogleCalendarService:
             event = service.events().insert(calendarId=calendar_id, body=body).execute()
 
         task.google_event_id = event.get("id")
-        integration.last_sync_at = datetime.utcnow()
+        integration.last_sync_at = datetime.now(timezone.utc)
         db.commit()
         return task.google_event_id
 
@@ -248,7 +248,7 @@ class GoogleCalendarService:
         }
 
         event = service.events().insert(calendarId=calendar_id, body=body).execute()
-        integration.last_sync_at = datetime.utcnow()
+        integration.last_sync_at = datetime.now(timezone.utc)
         db.commit()
         return event.get("id")
 

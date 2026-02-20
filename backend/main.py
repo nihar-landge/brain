@@ -99,6 +99,23 @@ async def log_requests(request: Request, call_next):
     return response
 
 
+from fastapi.responses import JSONResponse
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Catch all unhandled exceptions and return a consistent JSON response."""
+    log.error(f"Unhandled exception at {request.url.path}: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "Internal Server Error",
+            "message": "An unexpected error occurred.",
+            "path": request.url.path,
+        },
+    )
+
+
+
 # Auth dependency applied to all protected routers
 auth_dep = [Depends(verify_api_key)]
 

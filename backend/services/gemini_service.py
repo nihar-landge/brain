@@ -8,6 +8,11 @@ from typing import Optional
 
 from config import GEMINI_API_KEY, LLM_MODEL
 from utils.logger import log
+from utils.prompts import (
+    GENERATE_INSIGHT_PROMPT,
+    EXPLAIN_PREDICTION_PROMPT,
+    SUMMARIZE_ENTRIES_PROMPT,
+)
 
 
 class GeminiService:
@@ -138,19 +143,38 @@ class GeminiService:
         full_prompt = "\n".join(prompt_parts)
         return self._generate_with_retry(full_prompt)
 
+
+    def generate_stream(
+        self,
+        user_query: str,
+        context: str = "",
+        system_prompt: Optional[str] = None,
+    ):
+        """Generate a streaming response using Gemini with context."""
+        self._ensure_initialized()
+        if not self._model:
+            yield self._fallback_response()
+            return
+            
+        prompt_parts = []
+        if system_prompt:
+            prompt_parts.append(system_prompt)
+        if context:
+            prompt_parts.append(f"\n--- Context ---\n{context}\n--- End Context ---\n")
+        prompt_parts.append(f"User: {user_query}")
+        full_prompt = "\n".join(prompt_parts)
+
+        try:
+            response = self._model.generate_content(full_prompt, stream=True)
+            for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+        except Exception as e:
+            log.error(f"Streaming error: {e}")
+            yield "\n[Error: Connection interrupted]"
+
     def generate_insight(self, data_summary: str) -> str:
-        """Generate an insight from data patterns."""
-        prompt = f"""Analyze the following personal data and provide a meaningful insight:
-
-{data_summary}
-
-Provide:
-1. A brief insight title
-2. A clear explanation of the pattern
-3. An actionable suggestion
-
-Format as JSON with keys: title, explanation, suggestion"""
-
+        prompt = GENERATE_INSIGHT_PROMPT.format(data_summary=data_summary)
         return self._generate_with_retry(prompt)
 
     def explain_prediction(
@@ -166,27 +190,20 @@ Format as JSON with keys: title, explanation, suggestion"""
             return f"Prediction: {prediction_value:.0%} ({prediction_type})"
 
         factors_str = "\n".join(f"- {f}" for f in factors)
-        prompt = f"""Generate a helpful, friendly explanation of this prediction:
-
-Type: {prediction_type}
-Value: {prediction_value:.2f}
-Confidence: {confidence:.0%}
-Top factors:
-{factors_str}
-
-Keep it concise (2-3 sentences), supportive, and actionable."""
-
+        prompt = EXPLAIN_PREDICTION_PROMPT.format(
+            prediction_type=prediction_type,
+            prediction_value=prediction_value,
+            confidence=confidence,
+            factors_str=factors_str
+        )
         return self._generate_with_retry(prompt)
 
     def summarize_entries(self, entries_text: str, period: str = "weekly") -> str:
         """Summarize journal entries."""
-        prompt = f"""Summarize these journal entries into a concise {period} summary.
-Focus on mood trends, key events, important decisions, and patterns.
-
-{entries_text}
-
-Provide a 150-word maximum summary."""
-
+        prompt = SUMMARIZE_ENTRIES_PROMPT.format(
+            period=period,
+            entries_text=entries_text
+        )
         return self._generate_with_retry(prompt)
 
 

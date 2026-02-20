@@ -12,6 +12,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.habits import Habit, HabitLog
 from models.goals import Goal
 
@@ -51,7 +53,7 @@ class HabitLogCreate(BaseModel):
 
 
 @router.post("", response_model=dict)
-async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
+async def create_habit(habit: HabitCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Create a new habit linked to a goal."""
     # Validate goal exists
     goal = db.query(Goal).filter(Goal.id == habit.goal_id, Goal.user_id == 1).first()
@@ -59,7 +61,7 @@ async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Goal not found")
 
     new_habit = Habit(
-        user_id=1,
+        user_id=user.id,
         habit_name=habit.habit_name,
         habit_description=habit.habit_description,
         habit_category=habit.habit_category,
@@ -76,7 +78,7 @@ async def create_habit(habit: HabitCreate, db: Session = Depends(get_db)):
 
 @router.get("", response_model=List[dict])
 async def get_habits(
-    status: str = "active", goal_id: Optional[int] = None, db: Session = Depends(get_db)
+    status: str = "active", goal_id: Optional[int] = None, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """List habits, optionally filtered by goal."""
     query = db.query(Habit).filter(Habit.user_id == 1)
@@ -113,7 +115,7 @@ async def get_habits(
 
 
 @router.get("/{habit_id}", response_model=dict)
-async def get_habit(habit_id: int, db: Session = Depends(get_db)):
+async def get_habit(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get habit details."""
     habit = db.query(Habit).get(habit_id)
     if not habit:
@@ -134,7 +136,7 @@ async def get_habit(habit_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{habit_id}", response_model=dict)
 async def update_habit(
-    habit_id: int, updates: HabitUpdate, db: Session = Depends(get_db)
+    habit_id: int, updates: HabitUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Update habit."""
     habit = db.query(Habit).get(habit_id)
@@ -151,7 +153,7 @@ async def update_habit(
 
 
 @router.delete("/{habit_id}", response_model=dict)
-async def delete_habit(habit_id: int, db: Session = Depends(get_db)):
+async def delete_habit(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Delete habit."""
     habit = db.query(Habit).get(habit_id)
     if not habit:
@@ -163,7 +165,7 @@ async def delete_habit(habit_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("/{habit_id}/log", response_model=dict)
-async def log_habit(habit_id: int, log: HabitLogCreate, db: Session = Depends(get_db)):
+async def log_habit(habit_id: int, log: HabitLogCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Log habit completion for today."""
     habit = db.query(Habit).get(habit_id)
     if not habit:
@@ -188,7 +190,7 @@ async def log_habit(habit_id: int, log: HabitLogCreate, db: Session = Depends(ge
 
     new_log = HabitLog(
         habit_id=habit_id,
-        user_id=1,
+        user_id=user.id,
         log_date=today,
         completed=log.completed,
         difficulty=log.difficulty,
@@ -202,7 +204,7 @@ async def log_habit(habit_id: int, log: HabitLogCreate, db: Session = Depends(ge
 
 
 @router.get("/{habit_id}/stats", response_model=dict)
-async def get_habit_stats(habit_id: int, db: Session = Depends(get_db)):
+async def get_habit_stats(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get habit statistics including streaks and completion rates."""
     habit = db.query(Habit).get(habit_id)
     if not habit:

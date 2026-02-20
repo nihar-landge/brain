@@ -2,7 +2,7 @@
 Goal and GoalMilestone models.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -60,8 +60,8 @@ class Goal(Base):
 
     last_progress_update = Column(Date, nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
 
 
 class GoalMilestone(Base):
@@ -78,4 +78,4 @@ class GoalMilestone(Base):
     completed_date = Column(Date, nullable=True)
     completed = Column(Boolean, default=False)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

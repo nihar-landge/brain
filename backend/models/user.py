@@ -29,8 +29,8 @@ class User(Base):
     timezone = Column(String(50), default="UTC")
     date_format = Column(String(20), default="YYYY-MM-DD")
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    last_active_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    last_active_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     is_active = Column(Boolean, default=True)
 
     preferences = Column(JSON, nullable=True)
@@ -47,7 +47,7 @@ class ChatHistory(Base):
     sources = Column(JSON, nullable=True)
     tokens_used = Column(Integer, nullable=True)
     model_used = Column(String(50), nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class LettaMemory(Base):
@@ -59,8 +59,8 @@ class LettaMemory(Base):
     memory_key = Column(String(100), nullable=True)  # For core: "human", "persona"
     memory_content = Column(Text, nullable=False)
     embedding_id = Column(String(100), nullable=True)  # Reference to ChromaDB
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
 
 
 class SystemLog(Base):
@@ -71,4 +71,4 @@ class SystemLog(Base):
     log_source = Column(String(100), nullable=True)
     message = Column(Text, nullable=False)
     details = Column(JSON, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))

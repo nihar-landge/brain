@@ -2,9 +2,9 @@
 Habit Success Predictor - XGBoost model for habit prediction.
 """
 
-import pickle
+import joblib
 import os
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 import numpy as np
 from sqlalchemy.orm import Session
@@ -65,9 +65,8 @@ class HabitPredictor:
 
         # Save
         os.makedirs(ML_MODELS_DIR, exist_ok=True)
-        model_path = os.path.join(ML_MODELS_DIR, f"{self.MODEL_NAME}_v1.pkl")
-        with open(model_path, "wb") as f:
-            pickle.dump(self.model, f)
+        model_path = os.path.join(ML_MODELS_DIR, f"{self.MODEL_NAME}_v1.joblib")
+        joblib.dump(self.model, model_path)
 
         # Metadata
         ml_model = MLModel(
@@ -75,7 +74,7 @@ class HabitPredictor:
             model_name=self.MODEL_NAME,
             model_version="1.0",
             model_type="XGBoost",
-            training_date=datetime.utcnow(),
+            training_date=datetime.now(timezone.utc),
             training_samples=len(X),
             model_file_path=model_path,
             is_active=True,
@@ -114,7 +113,11 @@ class HabitPredictor:
 
     def _load_model(self):
         """Load saved model."""
-        model_path = os.path.join(ML_MODELS_DIR, f"{self.MODEL_NAME}_v1.pkl")
+        model_path = os.path.join(ML_MODELS_DIR, f"{self.MODEL_NAME}_v1.joblib")
+        
+        # Fallback to .pkl if .joblib not found
+        if not os.path.exists(model_path):
+            model_path = os.path.join(ML_MODELS_DIR, f"{self.MODEL_NAME}_v1.pkl")
+            
         if os.path.exists(model_path):
-            with open(model_path, "rb") as f:
-                self.model = pickle.load(f)
+            self.model = joblib.load(model_path)

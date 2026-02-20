@@ -10,6 +10,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from services.context_switching_service import context_switching_service
 from models.habits import Habit
 from models.dopamine import Task
@@ -46,7 +48,7 @@ class InterruptionRequest(BaseModel):
 
 
 @router.post("/start", response_model=dict)
-async def start_context(data: StartContextRequest, db: Session = Depends(get_db)):
+async def start_context(data: StartContextRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Start a new context/task timer. Automatically ends previous active context."""
     # Validate habit exists if provided
     habit = None
@@ -67,7 +69,7 @@ async def start_context(data: StartContextRequest, db: Session = Depends(get_db)
 
     ctx = context_switching_service.start_context(
         db,
-        user_id=1,
+        user_id=user.id,
         context_name=data.context_name,
         context_type=data.context_type,
         task_complexity=data.task_complexity,
@@ -92,11 +94,11 @@ async def start_context(data: StartContextRequest, db: Session = Depends(get_db)
 
 
 @router.post("/stop", response_model=dict)
-async def stop_context(data: EndContextRequest, db: Session = Depends(get_db)):
+async def stop_context(data: EndContextRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Stop the current or specified context timer."""
     ctx = context_switching_service.end_context(
         db,
-        user_id=1,
+        user_id=user.id,
         context_id=data.context_id,
         mood_after=data.mood_after,
         energy_after=data.energy_after,
@@ -109,7 +111,7 @@ async def stop_context(data: EndContextRequest, db: Session = Depends(get_db)):
     if (ctx.duration_minutes or 0) >= 5:
         try:
             event_id = await google_calendar_service.create_session_event(
-                db, ctx, user_id=1
+                db, ctx, user_id=user.id
             )
             if event_id:
                 ctx.google_event_id = event_id
@@ -129,20 +131,20 @@ async def stop_context(data: EndContextRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/active", response_model=dict)
-async def get_active_context(db: Session = Depends(get_db)):
+async def get_active_context(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get the currently active context (for the floating timer widget)."""
-    active = context_switching_service.get_active_context(db, user_id=1)
+    active = context_switching_service.get_active_context(db, user_id=user.id)
     if not active:
         return {"active": False}
     return {"active": True, **active}
 
 
 @router.post("/interrupt", response_model=dict)
-async def log_interruption(data: InterruptionRequest, db: Session = Depends(get_db)):
+async def log_interruption(data: InterruptionRequest, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Log an interruption to the current context."""
     ctx = context_switching_service.log_interruption(
         db,
-        user_id=1,
+        user_id=user.id,
         interrupted_by=data.interrupted_by,
     )
     if not ctx:
@@ -158,26 +160,26 @@ async def log_interruption(data: InterruptionRequest, db: Session = Depends(get_
 
 
 @router.get("/summary", response_model=dict)
-async def get_daily_summary(date: Optional[str] = None, db: Session = Depends(get_db)):
+async def get_daily_summary(date: Optional[str] = None, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get context switching summary for a specific day (default: today)."""
-    return context_switching_service.get_daily_summary(db, user_id=1, date=date)
+    return context_switching_service.get_daily_summary(db, user_id=user.id, date=date)
 
 
 @router.get("/deep-work", response_model=list)
-async def get_deep_work_blocks(days: int = 30, db: Session = Depends(get_db)):
+async def get_deep_work_blocks(days: int = 30, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get deep work blocks for the last N days."""
-    return context_switching_service.get_deep_work_blocks(db, user_id=1, days=days)
+    return context_switching_service.get_deep_work_blocks(db, user_id=user.id, days=days)
 
 
 @router.get("/optimal-times", response_model=dict)
-async def get_optimal_work_times(days: int = 30, db: Session = Depends(get_db)):
+async def get_optimal_work_times(days: int = 30, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Analyze historical data to find optimal work times by hour."""
-    return context_switching_service.get_optimal_work_times(db, user_id=1, days=days)
+    return context_switching_service.get_optimal_work_times(db, user_id=user.id, days=days)
 
 
 @router.get("/attention-residue", response_model=dict)
-async def get_attention_residue(days: int = 30, db: Session = Depends(get_db)):
+async def get_attention_residue(days: int = 30, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Analyze context switching costs and attention residue."""
     return context_switching_service.get_attention_residue_analysis(
-        db, user_id=1, days=days
+        db, user_id=user.id, days=days
     )

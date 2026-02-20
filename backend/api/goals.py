@@ -4,13 +4,15 @@ Goal management and tracking.
 """
 
 from typing import Optional, List
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.goals import Goal, GoalMilestone
 from models.habits import Habit
 from models.context import ContextLog
@@ -50,10 +52,10 @@ class MilestoneCreate(BaseModel):
 
 
 @router.post("", response_model=dict)
-async def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
+async def create_goal(goal: GoalCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Create a new goal."""
     new_goal = Goal(
-        user_id=1,
+        user_id=user.id,
         goal_title=goal.goal_title,
         goal_description=goal.goal_description,
         goal_category=goal.goal_category,
@@ -74,7 +76,7 @@ async def create_goal(goal: GoalCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=List[dict])
-async def get_goals(status: str = "active", db: Session = Depends(get_db)):
+async def get_goals(status: str = "active", user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get user goals with habit counts."""
     query = db.query(Goal).filter(Goal.user_id == 1)
     if status != "all":
@@ -115,7 +117,7 @@ async def get_goals(status: str = "active", db: Session = Depends(get_db)):
 
 
 @router.get("/{goal_id}", response_model=dict)
-async def get_goal(goal_id: int, db: Session = Depends(get_db)):
+async def get_goal(goal_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get specific goal with milestones, habits, and recent sessions."""
     goal = db.query(Goal).get(goal_id)
     if not goal:
@@ -201,7 +203,7 @@ async def get_goal(goal_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{goal_id}", response_model=dict)
-async def update_goal(goal_id: int, updates: GoalUpdate, db: Session = Depends(get_db)):
+async def update_goal(goal_id: int, updates: GoalUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Update goal."""
     goal = db.query(Goal).get(goal_id)
     if not goal:
@@ -215,14 +217,14 @@ async def update_goal(goal_id: int, updates: GoalUpdate, db: Session = Depends(g
     if updates.status == "completed":
         goal.completed_date = datetime.now().date()
 
-    goal.updated_at = datetime.utcnow()
+    goal.updated_at = datetime.now(timezone.utc)
     db.commit()
 
     return {"status": "success", "message": "Goal updated"}
 
 
 @router.delete("/{goal_id}", response_model=dict)
-async def delete_goal(goal_id: int, db: Session = Depends(get_db)):
+async def delete_goal(goal_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Delete goal."""
     goal = db.query(Goal).get(goal_id)
     if not goal:
@@ -235,7 +237,7 @@ async def delete_goal(goal_id: int, db: Session = Depends(get_db)):
 
 @router.post("/{goal_id}/milestones", response_model=dict)
 async def add_milestone(
-    goal_id: int, milestone: MilestoneCreate, db: Session = Depends(get_db)
+    goal_id: int, milestone: MilestoneCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Add milestone to a goal."""
     goal = db.query(Goal).get(goal_id)
@@ -260,7 +262,7 @@ async def add_milestone(
 
 @router.put("/{goal_id}/milestones/{milestone_id}/complete", response_model=dict)
 async def complete_milestone(
-    goal_id: int, milestone_id: int, db: Session = Depends(get_db)
+    goal_id: int, milestone_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Mark milestone as completed."""
     milestone = db.query(GoalMilestone).get(milestone_id)

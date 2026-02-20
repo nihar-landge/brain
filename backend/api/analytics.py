@@ -16,13 +16,16 @@ from models.habits import Habit, HabitLog
 from models.goals import Goal
 from services.gemini_service import gemini_service
 
+from models.user import User
+from utils.auth import verify_api_key
+
 router = APIRouter()
 
 
 @router.get("/dashboard", response_model=dict)
-async def get_dashboard_data(db: Session = Depends(get_db)):
+async def get_dashboard_data(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get complete dashboard analytics."""
-    user_id = 1
+    user_id = user.id
     now = datetime.now()
     week_ago = now.date() - timedelta(days=7)
     month_ago = now.date() - timedelta(days=30)
@@ -93,10 +96,11 @@ async def get_dashboard_data(db: Session = Depends(get_db)):
 async def analyze_patterns(
     category: str = "mood",
     lookback_days: int = 90,
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db),
 ):
     """Analyze behavioral patterns."""
-    user_id = 1
+    user_id = user.id
     start_date = datetime.now().date() - timedelta(days=lookback_days)
 
     if category == "mood":
@@ -133,9 +137,9 @@ async def analyze_patterns(
 
 
 @router.get("/insights", response_model=list)
-async def get_insights(db: Session = Depends(get_db)):
+async def get_insights(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get AI-generated insights."""
-    user_id = 1
+    user_id = user.id
 
     # Get existing insights
     insights = (
@@ -162,9 +166,9 @@ async def get_insights(db: Session = Depends(get_db)):
 
 
 @router.post("/generate-insights", response_model=dict)
-async def generate_insights(db: Session = Depends(get_db)):
+async def generate_insights(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Generate new AI insights from recent data."""
-    user_id = 1
+    user_id = user.id
     week_ago = datetime.now().date() - timedelta(days=7)
 
     entries = (

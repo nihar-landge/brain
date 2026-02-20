@@ -2,7 +2,7 @@
 Dopamine and Task models for gamification/productivity workflows.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 from sqlalchemy import (
     Column,
@@ -37,8 +37,8 @@ class DopamineItem(Base):
     energy_type = Column(String(20), nullable=True)  # mental, physical, relax
     is_active = Column(Boolean, default=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (Index("idx_dopamine_items_user_cat", "user_id", "category"),)
 
@@ -63,7 +63,7 @@ class DopamineEvent(Base):
     accepted = Column(Boolean, default=False)
     completed = Column(Boolean, default=False)
 
-    shown_at = Column(DateTime, default=datetime.utcnow)
+    shown_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
     acted_at = Column(DateTime, nullable=True)
 
     __table_args__ = (Index("idx_dopamine_events_user_shown", "user_id", "shown_at"),)
@@ -99,8 +99,8 @@ class Task(Base):
     tags = Column(JSON, nullable=True)
     google_event_id = Column(String(255), nullable=True)
 
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_tasks_user_status", "user_id", "status"),
@@ -128,8 +128,8 @@ class CalendarIntegration(Base):
 
     is_connected = Column(Boolean, default=False)
     last_sync_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     __table_args__ = (
         Index("idx_calendar_integrations_user_provider", "user_id", "provider"),

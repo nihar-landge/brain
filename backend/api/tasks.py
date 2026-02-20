@@ -3,7 +3,7 @@ Tasks API Endpoints.
 Task planning with goal/habit tagging, scheduling, and priorities.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -11,6 +11,8 @@ from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from utils.database import get_db
+from models.user import User
+from utils.auth import verify_api_key
 from models.dopamine import Task
 from models.goals import Goal
 from models.habits import Habit
@@ -79,11 +81,11 @@ def _validate_links(db: Session, goal_id: Optional[int], habit_id: Optional[int]
 
 
 @router.post("", response_model=dict)
-async def create_task(data: TaskCreate, db: Session = Depends(get_db)):
+async def create_task(data: TaskCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     _validate_links(db, data.goal_id, data.habit_id)
 
     task = Task(
-        user_id=1,
+        user_id=user.id,
         title=data.title,
         description=data.description,
         status=data.status,
@@ -104,7 +106,7 @@ async def create_task(data: TaskCreate, db: Session = Depends(get_db)):
 
     # Auto-sync to Google Calendar if connected
     try:
-        await google_calendar_service.upsert_task_event(db, task, user_id=1)
+        await google_calendar_service.upsert_task_event(db, task, user_id=user.id)
     except Exception:
         pass
 
@@ -117,7 +119,7 @@ async def get_tasks(
     priority: str = "all",
     goal_id: Optional[int] = None,
     habit_id: Optional[int] = None,
-    db: Session = Depends(get_db),
+    user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     query = db.query(Task).filter(Task.user_id == 1)
 
@@ -172,7 +174,7 @@ async def get_tasks(
 
 
 @router.get("/{task_id}", response_model=dict)
-async def get_task(task_id: int, db: Session = Depends(get_db)):
+async def get_task(task_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -197,7 +199,7 @@ async def get_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{task_id}", response_model=dict)
-async def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(get_db)):
+async def update_task(task_id: int, updates: TaskUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -218,12 +220,12 @@ async def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(g
         else:
             setattr(task, key, value)
 
-    task.updated_at = datetime.utcnow()
+    task.updated_at = datetime.now(timezone.utc)
     db.commit()
 
     # Auto-sync updates to Google Calendar if connected
     try:
-        await google_calendar_service.upsert_task_event(db, task, user_id=1)
+        await google_calendar_service.upsert_task_event(db, task, user_id=user.id)
     except Exception:
         pass
 
@@ -231,7 +233,7 @@ async def update_task(task_id: int, updates: TaskUpdate, db: Session = Depends(g
 
 
 @router.delete("/{task_id}", response_model=dict)
-async def delete_task(task_id: int, db: Session = Depends(get_db)):
+async def delete_task(task_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -239,7 +241,7 @@ async def delete_task(task_id: int, db: Session = Depends(get_db)):
     # If linked to Google Calendar event, try deleting remotely first
     if task.google_event_id:
         try:
-            service, integration = google_calendar_service._get_service(db, user_id=1)
+            service, integration = google_calendar_service._get_service(db, user_id=user.id)
             if service and integration and integration.calendar_id:
                 service.events().delete(
                     calendarId=integration.calendar_id, eventId=task.google_event_id
