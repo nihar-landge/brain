@@ -58,6 +58,10 @@ jobs:
             cd /home/ubuntu/brain
 
             git fetch origin main
+            
+            # Fix permissions before resetting so git can modify files in volume mounts
+            sudo chown -R ubuntu:ubuntu .
+            
             git reset --hard origin/main
 
             # Use the existing backend/.env to resolve docker-compose variables securely
