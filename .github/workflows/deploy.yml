@@ -57,7 +57,8 @@ jobs:
             set -e
             cd /home/ubuntu/brain
 
-            git pull --ff-only origin main
+            git fetch origin main
+            git reset --hard origin/main
 
             # Use the existing backend/.env to resolve docker-compose variables securely
             docker-compose --env-file backend/.env build
