@@ -42,6 +42,8 @@ docker-compose.override.yml
 
 # Logs
 *.log
+backend/logs/*
+!backend/logs/.gitkeep
 
 # Generated docs
 CRITICAL_FIXES_AND_BEST_PRACTICES.md
