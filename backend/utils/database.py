@@ -18,10 +18,15 @@ if db_url.startswith("sqlite:///./"):
         os.path.dirname(db_path) if os.path.dirname(db_path) else ".", exist_ok=True
     )
 
+# Create engine options
+connect_args = {}
+if db_url.startswith("sqlite"):
+    connect_args["check_same_thread"] = False
+
 # Create engine
 engine = create_engine(
     db_url,
-    connect_args={"check_same_thread": False},  # Required for SQLite
+    connect_args=connect_args,
     echo=False,
 )
 
