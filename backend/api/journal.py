@@ -86,7 +86,7 @@ async def get_journal_entries(
     user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """Get journal entries with optional date filtering."""
-    query = db.query(JournalEntry).filter(JournalEntry.user_id == 1)
+    query = db.query(JournalEntry).filter(JournalEntry.user_id == user.id)
 
     if start_date:
         query = query.filter(JournalEntry.entry_date >= start_date)

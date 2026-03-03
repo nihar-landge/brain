@@ -122,7 +122,7 @@ async def get_dopamine_items(active_only: bool = True, user: User = Depends(veri
     """List user dopamine items (auto-seeded on first use)."""
     _seed_default_items(db, user_id=user.id)
 
-    query = db.query(DopamineItem).filter(DopamineItem.user_id == 1)
+    query = db.query(DopamineItem).filter(DopamineItem.user_id == user.id)
     if active_only:
         query = query.filter(DopamineItem.is_active.is_(True))
 
@@ -157,7 +157,7 @@ async def update_dopamine_item(
 ):
     item = (
         db.query(DopamineItem)
-        .filter(DopamineItem.id == item_id, DopamineItem.user_id == 1)
+        .filter(DopamineItem.id == item_id, DopamineItem.user_id == user.id)
         .first()
     )
     if not item:
@@ -174,7 +174,7 @@ async def update_dopamine_item(
 async def delete_dopamine_item(item_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     item = (
         db.query(DopamineItem)
-        .filter(DopamineItem.id == item_id, DopamineItem.user_id == 1)
+        .filter(DopamineItem.id == item_id, DopamineItem.user_id == user.id)
         .first()
     )
     if not item:
@@ -289,7 +289,7 @@ async def suggest_dopamine_item(data: SuggestRequest, user: User = Depends(verif
     items = (
         db.query(DopamineItem)
         .filter(
-            DopamineItem.user_id == 1,
+            DopamineItem.user_id == user.id,
             DopamineItem.is_active.is_(True),
             DopamineItem.category.in_(preferred_categories),
         )
@@ -300,7 +300,7 @@ async def suggest_dopamine_item(data: SuggestRequest, user: User = Depends(verif
     if not items:
         fallback = (
             db.query(DopamineItem)
-            .filter(DopamineItem.user_id == 1, DopamineItem.is_active.is_(True))
+            .filter(DopamineItem.user_id == user.id, DopamineItem.is_active.is_(True))
             .order_by(DopamineItem.created_at.desc())
             .all()
         )
@@ -370,7 +370,7 @@ async def update_event(
 ):
     event = (
         db.query(DopamineEvent)
-        .filter(DopamineEvent.id == event_id, DopamineEvent.user_id == 1)
+        .filter(DopamineEvent.id == event_id, DopamineEvent.user_id == user.id)
         .first()
     )
     if not event:

@@ -2,7 +2,7 @@
 User, Chat History, Letta Memory, and System Log models.
 """
 
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
@@ -24,6 +24,14 @@ class User(Base):
     username = Column(String(100), unique=True, nullable=False)
     email = Column(String(255), unique=True, nullable=True)
     full_name = Column(String(200), nullable=True)
+
+    # Authentication
+    hashed_password = Column(String(255), nullable=True)
+    google_id = Column(String(255), unique=True, nullable=True)
+    google_access_token = Column(String(255), nullable=True)
+    google_refresh_token = Column(String(255), nullable=True)
+    google_token_expiry = Column(DateTime, nullable=True)
+    avatar_url = Column(String(500), nullable=True)
 
     # Profile settings
     timezone = Column(String(50), default="UTC")

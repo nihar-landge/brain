@@ -17,6 +17,15 @@ DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./data/database.db")
 CHROMA_PERSIST_DIR = os.getenv("CHROMA_PERSIST_DIR", "./data/chromadb")
 API_SECRET_KEY = os.getenv("API_SECRET_KEY", "")  # Empty = auth disabled (dev mode)
 
+# JWT Auth
+JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY", "dev_super_secret_key_change_in_prod")
+JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
+JWT_EXPIRATION_MINUTES = int(os.getenv("JWT_EXPIRATION_MINUTES", "60"))
+JWT_REFRESH_EXPIRATION_DAYS = int(os.getenv("JWT_REFRESH_EXPIRATION_DAYS", "7"))
+
+# Database Config
+IS_SQLITE = DATABASE_URL.startswith("sqlite")
+
 # Google Calendar OAuth
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")

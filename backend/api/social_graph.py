@@ -65,7 +65,7 @@ class ProcessEntryRequest(BaseModel):
 @router.get("/people", response_model=list)
 async def list_people(active_only: bool = True, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """List all tracked people."""
-    query = db.query(Person).filter(Person.user_id == 1)
+    query = db.query(Person).filter(Person.user_id == user.id)
     if active_only:
         query = query.filter(Person.is_active == True)
     people = query.order_by(Person.total_mentions.desc()).all()
@@ -114,7 +114,7 @@ async def update_person(
 ):
     """Update a person's details."""
     person = (
-        db.query(Person).filter(Person.id == person_id, Person.user_id == 1).first()
+        db.query(Person).filter(Person.id == person_id, Person.user_id == user.id).first()
     )
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
@@ -136,7 +136,7 @@ async def update_person(
 async def delete_person(person_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Deactivate a person (soft delete)."""
     person = (
-        db.query(Person).filter(Person.id == person_id, Person.user_id == 1).first()
+        db.query(Person).filter(Person.id == person_id, Person.user_id == user.id).first()
     )
     if not person:
         raise HTTPException(status_code=404, detail="Person not found")
@@ -156,7 +156,7 @@ async def create_interaction(data: InteractionCreate, user: User = Depends(verif
 
     person = (
         db.query(Person)
-        .filter(Person.id == data.person_id, Person.user_id == 1)
+        .filter(Person.id == data.person_id, Person.user_id == user.id)
         .first()
     )
     if not person:
@@ -197,7 +197,7 @@ async def list_interactions(
     user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
     """List social interactions, optionally filtered by person."""
-    query = db.query(SocialInteraction).filter(SocialInteraction.user_id == 1)
+    query = db.query(SocialInteraction).filter(SocialInteraction.user_id == user.id)
     if person_id:
         query = query.filter(SocialInteraction.person_id == person_id)
 

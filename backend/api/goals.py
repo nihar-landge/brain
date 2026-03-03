@@ -78,7 +78,7 @@ async def create_goal(goal: GoalCreate, user: User = Depends(verify_api_key), db
 @router.get("", response_model=List[dict])
 async def get_goals(status: str = "active", user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get user goals with habit counts."""
-    query = db.query(Goal).filter(Goal.user_id == 1)
+    query = db.query(Goal).filter(Goal.user_id == user.id)
     if status != "all":
         query = query.filter(Goal.status == status)
 

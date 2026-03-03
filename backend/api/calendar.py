@@ -42,7 +42,7 @@ async def get_calendar_events(
     tasks = (
         db.query(Task)
         .filter(
-            Task.user_id == 1,
+            Task.user_id == user.id,
             (
                 (
                     Task.scheduled_at.isnot(None)
@@ -62,7 +62,7 @@ async def get_calendar_events(
     contexts = (
         db.query(ContextLog)
         .filter(
-            ContextLog.user_id == 1,
+            ContextLog.user_id == user.id,
             ContextLog.started_at >= start_dt,
             ContextLog.started_at <= end_dt,
         )
@@ -189,7 +189,7 @@ async def google_status(user: User = Depends(verify_api_key), db: Session = Depe
     integration = (
         db.query(CalendarIntegration)
         .filter(
-            CalendarIntegration.user_id == 1,
+            CalendarIntegration.user_id == user.id,
             CalendarIntegration.provider == "google",
         )
         .first()

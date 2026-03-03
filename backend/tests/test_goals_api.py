@@ -4,8 +4,8 @@
 class TestGoalsApi:
     """Test goal CRUD operations."""
 
-    def test_create_goal(self, client):
-        resp = client.post("/api/goals", json={
+    def test_create_goal(self, client, auth_headers):
+        resp = client.post("/api/goals", headers=auth_headers, json={
             "goal_title": "Learn Python",
             "goal_description": "Complete a Python course",
             "goal_category": "learning",
@@ -17,40 +17,40 @@ class TestGoalsApi:
         assert data["status"] == "success"
         assert "id" in data
 
-    def test_list_goals(self, client):
-        client.post("/api/goals", json={"goal_title": "Goal A", "start_date": "2023-01-01"})
-        client.post("/api/goals", json={"goal_title": "Goal B", "start_date": "2023-01-02"})
+    def test_list_goals(self, client, auth_headers):
+        client.post("/api/goals", headers=auth_headers, json={"goal_title": "Goal A", "start_date": "2023-01-01"})
+        client.post("/api/goals", headers=auth_headers, json={"goal_title": "Goal B", "start_date": "2023-01-02"})
 
-        resp = client.get("/api/goals")
+        resp = client.get("/api/goals", headers=auth_headers)
         assert resp.status_code == 200
         goals = resp.json()
         assert len(goals) == 2
 
-    def test_get_goal(self, client):
-        create = client.post("/api/goals", json={"goal_title": "Fitness", "start_date": "2023-01-01"})
+    def test_get_goal(self, client, auth_headers):
+        create = client.post("/api/goals", headers=auth_headers, json={"goal_title": "Fitness", "start_date": "2023-01-01"})
         gid = create.json()["id"]
 
-        resp = client.get(f"/api/goals/{gid}")
+        resp = client.get(f"/api/goals/{gid}", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json()["title"] == "Fitness"
 
-    def test_update_goal(self, client):
-        create = client.post("/api/goals", json={"goal_title": "Old Title", "start_date": "2023-01-01"})
+    def test_update_goal(self, client, auth_headers):
+        create = client.post("/api/goals", headers=auth_headers, json={"goal_title": "Old Title", "start_date": "2023-01-01"})
         gid = create.json()["id"]
 
-        resp = client.put(f"/api/goals/{gid}", json={"goal_title": "New Title"})
+        resp = client.put(f"/api/goals/{gid}", headers=auth_headers, json={"goal_title": "New Title"})
         assert resp.status_code == 200
 
-    def test_delete_goal(self, client):
-        create = client.post("/api/goals", json={"goal_title": "Temp Goal", "start_date": "2023-01-01"})
+    def test_delete_goal(self, client, auth_headers):
+        create = client.post("/api/goals", headers=auth_headers, json={"goal_title": "Temp Goal", "start_date": "2023-01-01"})
         gid = create.json()["id"]
 
-        resp = client.delete(f"/api/goals/{gid}")
+        resp = client.delete(f"/api/goals/{gid}", headers=auth_headers)
         assert resp.status_code == 200
 
-        get_resp = client.get(f"/api/goals/{gid}")
+        get_resp = client.get(f"/api/goals/{gid}", headers=auth_headers)
         assert get_resp.status_code == 404
 
-    def test_goal_not_found(self, client):
-        resp = client.get("/api/goals/99999")
+    def test_goal_not_found(self, client, auth_headers):
+        resp = client.get("/api/goals/99999", headers=auth_headers)
         assert resp.status_code == 404

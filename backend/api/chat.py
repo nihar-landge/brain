@@ -107,7 +107,7 @@ async def get_chat_history(limit: int = 20, user: User = Depends(verify_api_key)
     """Get recent chat history."""
     messages = (
         db.query(ChatHistory)
-        .filter(ChatHistory.user_id == 1)
+        .filter(ChatHistory.user_id == user.id)
         .order_by(ChatHistory.created_at.desc())
         .limit(limit)
         .all()
@@ -127,6 +127,6 @@ async def get_chat_history(limit: int = 20, user: User = Depends(verify_api_key)
 @router.delete("/clear", response_model=dict)
 async def clear_chat_history(user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Clear all chat history for the user."""
-    deleted = db.query(ChatHistory).filter(ChatHistory.user_id == 1).delete()
+    deleted = db.query(ChatHistory).filter(ChatHistory.user_id == user.id).delete()
     db.commit()
     return {"status": "success", "message": f"Cleared {deleted} messages"}

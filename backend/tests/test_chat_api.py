@@ -8,7 +8,7 @@ class TestChatApi:
 
     @patch("api.chat.gemini_service")
     @patch("api.chat.SmartMemoryManager")
-    def test_send_message(self, MockMemoryMgr, mock_gemini, client):
+    def test_send_message(self, MockMemoryMgr, mock_gemini, client, auth_headers):
         # Mock instance returned by constructor
         mock_mem = MockMemoryMgr.return_value
         mock_mem.smart_search_with_fallback.return_value = {
@@ -18,19 +18,18 @@ class TestChatApi:
             "sql_fallback": [],
         }
 
-        mock_gemini.generate_response.return_value = "Hello! How can I help?"
+        mock_gemini.generate_stream.return_value = ["Hello! How can I help?"]
 
-        resp = client.post("/api/chat", json={"message": "Hi there"})
+        resp = client.post("/api/chat", headers=auth_headers, json={"message": "Hi there"})
         assert resp.status_code == 200
-        data = resp.json()
-        assert "response" in data
+        assert "Hello! How can I help?" in resp.text
 
-    def test_get_history_empty(self, client):
-        resp = client.get("/api/chat/history")
+    def test_get_history_empty(self, client, auth_headers):
+        resp = client.get("/api/chat/history", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json() == []
 
-    def test_clear_chat(self, client):
-        resp = client.delete("/api/chat/clear")
+    def test_clear_chat(self, client, auth_headers):
+        resp = client.delete("/api/chat/clear", headers=auth_headers)
         assert resp.status_code == 200
         assert resp.json()["status"] == "success"

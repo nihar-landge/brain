@@ -57,3 +57,43 @@ def db_session():
         yield db
     finally:
         db.close()
+
+@pytest.fixture()
+def test_user(db_session, setup_database):
+    """Create a default test user."""
+    from models.user import User
+    from utils.auth_jwt import hash_password
+    
+    user = db_session.query(User).filter(User.email == "test@example.com").first()
+    if not user:
+        user = User(
+            username="testuser",
+            email="test@example.com",
+            hashed_password=hash_password("testpassword"),
+            full_name="Test User",
+            is_active=True
+        )
+        db_session.add(user)
+        db_session.commit()
+        db_session.refresh(user)
+    return user
+
+@pytest.fixture()
+def auth_headers(test_user):
+    """Return valid JWT authorization headers for test_user."""
+    from utils.auth_jwt import create_access_token
+    
+    access_token = create_access_token(
+        user_id=test_user.id,
+        email=test_user.email
+    )
+    return {"Authorization": f"Bearer {access_token}"}
+
+@pytest.fixture()
+def test_goal(client, auth_headers):
+    """Create a default test goal for habits to link to."""
+    resp = client.post("/api/goals", headers=auth_headers, json={
+        "goal_title": "Default Test Goal",
+        "start_date": "2023-01-01"
+    })
+    return resp.json()["id"]

@@ -55,7 +55,7 @@ async def start_context(data: StartContextRequest, user: User = Depends(verify_a
     if data.habit_id:
         habit = (
             db.query(Habit)
-            .filter(Habit.id == data.habit_id, Habit.user_id == 1)
+            .filter(Habit.id == data.habit_id, Habit.user_id == user.id)
             .first()
         )
         if not habit:
@@ -63,7 +63,7 @@ async def start_context(data: StartContextRequest, user: User = Depends(verify_a
 
     task = None
     if data.task_id:
-        task = db.query(Task).filter(Task.id == data.task_id, Task.user_id == 1).first()
+        task = db.query(Task).filter(Task.id == data.task_id, Task.user_id == user.id).first()
         if not task:
             raise HTTPException(status_code=404, detail="Task not found")
 

@@ -1,10 +1,31 @@
 services:
+  database:
+    image: postgres:16-alpine
+    container_name: brain_db
+    environment:
+      POSTGRES_USER: brain
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: brain
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U brain -d brain"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: ./backend
       dockerfile: ../docker/Dockerfile.backend
+    container_name: brain_backend
     expose:
       - "8000"
+    ports:
+      - "8000:8000"
     env_file:
       - ./backend/.env
     volumes:
@@ -12,6 +33,9 @@ services:
       - ./backend/ml/models:/app/ml/models
       - ./backend/logs:/app/logs
     restart: unless-stopped
+    depends_on:
+      database:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
       interval: 30s
@@ -27,6 +51,7 @@ services:
         VITE_API_KEY: ${API_SECRET_KEY:-}
         BASIC_AUTH_USER: ${BASIC_AUTH_USER:-nihar}
         BASIC_AUTH_PASS: ${BASIC_AUTH_PASS:-kalash@1}
+    container_name: brain_frontend
     env_file:
       - ./backend/.env
     ports:
@@ -36,3 +61,6 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  pgdata:

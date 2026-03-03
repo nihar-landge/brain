@@ -56,7 +56,7 @@ class HabitLogCreate(BaseModel):
 async def create_habit(habit: HabitCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Create a new habit linked to a goal."""
     # Validate goal exists
-    goal = db.query(Goal).filter(Goal.id == habit.goal_id, Goal.user_id == 1).first()
+    goal = db.query(Goal).filter(Goal.id == habit.goal_id, Goal.user_id == user.id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
@@ -81,7 +81,7 @@ async def get_habits(
     status: str = "active", goal_id: Optional[int] = None, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """List habits, optionally filtered by goal."""
-    query = db.query(Habit).filter(Habit.user_id == 1)
+    query = db.query(Habit).filter(Habit.user_id == user.id)
     if status != "all":
         query = query.filter(Habit.status == status)
     if goal_id is not None:

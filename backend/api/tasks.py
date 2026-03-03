@@ -70,12 +70,12 @@ def _parse_datetime(value: Optional[str]):
 
 def _validate_links(db: Session, goal_id: Optional[int], habit_id: Optional[int]):
     if goal_id is not None:
-        goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == 1).first()
+        goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == user.id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
 
     if habit_id is not None:
-        habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == 1).first()
+        habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user.id).first()
         if not habit:
             raise HTTPException(status_code=404, detail="Habit not found")
 
@@ -121,7 +121,7 @@ async def get_tasks(
     habit_id: Optional[int] = None,
     user: User = Depends(verify_api_key), db: Session = Depends(get_db),
 ):
-    query = db.query(Task).filter(Task.user_id == 1)
+    query = db.query(Task).filter(Task.user_id == user.id)
 
     if status != "all":
         query = query.filter(Task.status == status)
@@ -175,7 +175,7 @@ async def get_tasks(
 
 @router.get("/{task_id}", response_model=dict)
 async def get_task(task_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -200,7 +200,7 @@ async def get_task(task_id: int, user: User = Depends(verify_api_key), db: Sessi
 
 @router.put("/{task_id}", response_model=dict)
 async def update_task(task_id: int, updates: TaskUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
@@ -234,7 +234,7 @@ async def update_task(task_id: int, updates: TaskUpdate, user: User = Depends(ve
 
 @router.delete("/{task_id}", response_model=dict)
 async def delete_task(task_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
-    task = db.query(Task).filter(Task.id == task_id, Task.user_id == 1).first()
+    task = db.query(Task).filter(Task.id == task_id, Task.user_id == user.id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
