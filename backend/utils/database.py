@@ -185,3 +185,26 @@ def _migrate_tables():
                     text("ALTER TABLE users ADD COLUMN preferences JSON")
                 )
                 conn.commit()
+
+        # Migration 5: Add new columns to journal_entries table
+        if "journal_entries" in table_names:
+            journal_cols = {c["name"] for c in inspector.get_columns("journal_entries")}
+
+            new_journal_cols = [
+                ("sentiment_score", "FLOAT"),
+                ("sentiment_label", "VARCHAR(20)"),
+                ("emotions", "JSON"),
+                ("topics", "JSON"),
+                ("cognitive_distortions", "JSON"),
+                ("dream_type", "VARCHAR(50)"),
+                ("dream_symbols", "JSON"),
+                ("dream_interpretation", "TEXT"),
+                ("dream_recurring_pattern", "BOOLEAN")
+            ]
+
+            for col_name, col_type in new_journal_cols:
+                if col_name not in journal_cols:
+                    conn.execute(
+                        text(f"ALTER TABLE journal_entries ADD COLUMN {col_name} {col_type}")
+                    )
+                    conn.commit()
