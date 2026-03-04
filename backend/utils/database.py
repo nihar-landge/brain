@@ -140,6 +140,7 @@ def _migrate_tables():
                 )
                 conn.commit()
 
+
         # Migration 4: Add new columns to users table
         if "users" in table_names:
             user_cols = {c["name"] for c in inspector.get_columns("users")}

@@ -3,7 +3,7 @@ Calendar API.
 Internal calendar feed + Google Calendar OAuth/sync + timezone settings.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query

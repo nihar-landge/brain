@@ -21,7 +21,7 @@ class ScheduleOptimizer:
         thirty_days_ago = datetime.now(timezone.utc) - timedelta(days=30)
         logs = db.query(ContextLog).filter(
             ContextLog.user_id == user_id,
-            ContextLog.productivity_score >= 4,
+            ContextLog.productivity_rating >= 4,
             ContextLog.ended_at != None,
             ContextLog.started_at >= thirty_days_ago
         ).all()
@@ -33,7 +33,7 @@ class ScheduleOptimizer:
         for log in logs:
             if log.started_at:
                 hour = log.started_at.hour
-                hour_scores[hour].append(log.productivity_score)
+                hour_scores[hour].append(log.productivity_rating)
 
         if not hour_scores:
             # Fallback to general advice
