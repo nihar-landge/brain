@@ -139,3 +139,49 @@ def _migrate_tables():
                     text("ALTER TABLE tasks ADD COLUMN google_event_id VARCHAR(255)")
                 )
                 conn.commit()
+
+        # Migration 4: Add new columns to users table
+        if "users" in table_names:
+            user_cols = {c["name"] for c in inspector.get_columns("users")}
+
+            if "hashed_password" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN hashed_password VARCHAR(255)")
+                )
+                conn.commit()
+
+            if "google_id" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN google_id VARCHAR(255)")
+                )
+                conn.commit()
+
+            if "google_access_token" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN google_access_token VARCHAR(255)")
+                )
+                conn.commit()
+
+            if "google_refresh_token" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN google_refresh_token VARCHAR(255)")
+                )
+                conn.commit()
+
+            if "google_token_expiry" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN google_token_expiry DATETIME")
+                )
+                conn.commit()
+
+            if "avatar_url" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN avatar_url VARCHAR(500)")
+                )
+                conn.commit()
+
+            if "preferences" not in user_cols:
+                conn.execute(
+                    text("ALTER TABLE users ADD COLUMN preferences JSON")
+                )
+                conn.commit()
