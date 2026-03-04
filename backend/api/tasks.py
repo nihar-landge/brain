@@ -68,21 +68,21 @@ def _parse_datetime(value: Optional[str]):
         return datetime.fromisoformat(value)
 
 
-def _validate_links(db: Session, goal_id: Optional[int], habit_id: Optional[int]):
+def _validate_links(db: Session, user_id: int, goal_id: Optional[int], habit_id: Optional[int]):
     if goal_id is not None:
-        goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == user.id).first()
+        goal = db.query(Goal).filter(Goal.id == goal_id, Goal.user_id == user_id).first()
         if not goal:
             raise HTTPException(status_code=404, detail="Goal not found")
 
     if habit_id is not None:
-        habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user.id).first()
+        habit = db.query(Habit).filter(Habit.id == habit_id, Habit.user_id == user_id).first()
         if not habit:
             raise HTTPException(status_code=404, detail="Habit not found")
 
 
 @router.post("", response_model=dict)
 async def create_task(data: TaskCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
-    _validate_links(db, data.goal_id, data.habit_id)
+    _validate_links(db, user.id, data.goal_id, data.habit_id)
 
     task = Task(
         user_id=user.id,
@@ -207,7 +207,7 @@ async def update_task(task_id: int, updates: TaskUpdate, user: User = Depends(ve
     data = updates.model_dump(exclude_unset=True)
 
     _validate_links(
-        db, data.get("goal_id", task.goal_id), data.get("habit_id", task.habit_id)
+        db, user.id, data.get("goal_id", task.goal_id), data.get("habit_id", task.habit_id)
     )
 
     for key, value in data.items():
