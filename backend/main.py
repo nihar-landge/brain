@@ -45,18 +45,7 @@ from api.calendar import (
     router as calendar_router,
     public_router as calendar_public_router,
 )
-from api.auth import router as auth_router
-from api.sentiment import router as sentiment_router
-from api.reports import router as reports_router
-from api.nudges import router as nudges_router
-from api.dreams import router as dreams_router
-from api.sleep import router as sleep_router
-from api.burnout import router as burnout_router
-from api.schedule import router as schedule_router
-from api.habit_stacking import router as habit_stacking_router
-from api.anomalies import router as anomalies_router
-from api.location import router as location_router
-from api.websocket import router as websocket_router
+
 
 
 @asynccontextmanager
@@ -93,8 +82,8 @@ app = FastAPI(
     version=APP_VERSION,
     description=APP_DESCRIPTION,
     lifespan=lifespan,
-    docs_url=None,
-    redoc_url=None,
+    docs_url="/docs",
+    redoc_url="/redoc",
 )
 
 # CORS middleware
@@ -123,20 +112,11 @@ async def log_requests(request: Request, call_next):
     return response
 
 
-from fastapi.responses import JSONResponse
+from utils.exceptions import BrainException
+from utils.error_handlers import brain_exception_handler, generic_exception_handler
 
-@app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
-    """Catch all unhandled exceptions and return a consistent JSON response."""
-    log.error(f"Unhandled exception at {request.url.path}: {exc}")
-    return JSONResponse(
-        status_code=500,
-        content={
-            "error": "Internal Server Error",
-            "message": "An unexpected error occurred.",
-            "path": request.url.path,
-        },
-    )
+app.add_exception_handler(BrainException, brain_exception_handler)
+app.add_exception_handler(Exception, generic_exception_handler)
 
 
 

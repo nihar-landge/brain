@@ -1,11 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Search, X, Calendar, Plus, ChevronDown, ChevronUp,
-    Pencil, Trash2, Tag, Flame, BookOpen, Clock, Hash
+    Pencil, Trash2, Tag, Flame, BookOpen, Clock, Hash, Sparkles, Loader2
 } from 'lucide-react'
 import {
     getJournalEntries, createJournalEntry, updateJournalEntry,
-    deleteJournalEntry, searchJournalEntries
+    deleteJournalEntry, searchJournalEntries, analyzeSentiment
 } from '../api'
 
 const moodConfig = [
@@ -88,11 +88,10 @@ function MoodPicker({ value, onChange }) {
                         key={m.value}
                         type="button"
                         onClick={() => onChange(m.value)}
-                        className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl transition-all ${
-                            value === m.value
-                                ? 'bg-[var(--color-gray-100)] ring-2 ring-[var(--color-black)] scale-110'
-                                : 'hover:bg-[var(--color-gray-100)] opacity-60 hover:opacity-100'
-                        }`}
+                        className={`flex flex-col items-center gap-0.5 p-1.5 sm:p-2 rounded-xl transition-all ${value === m.value
+                            ? 'bg-[var(--color-gray-100)] ring-2 ring-[var(--color-black)] scale-110'
+                            : 'hover:bg-[var(--color-gray-100)] opacity-60 hover:opacity-100'
+                            }`}
                     >
                         <span className="text-lg sm:text-xl">{m.emoji}</span>
                         <span className="text-[9px] sm:text-[10px] text-[var(--color-gray-600)] font-medium">{m.label}</span>
@@ -124,6 +123,18 @@ function MetricSlider({ icon, label, value, onChange, lowLabel, highLabel }) {
 
 // ─── Journal Entry Card ──────────────────────────────────
 function EntryCard({ entry, expanded, onToggle, onEdit, onDelete }) {
+    const [sentiment, setSentiment] = useState(null)
+    const [analyzing, setAnalyzing] = useState(false)
+
+    const handleAnalyze = async () => {
+        setAnalyzing(true)
+        try {
+            const { data } = await analyzeSentiment(entry.id)
+            setSentiment(data)
+        } catch (err) { console.error(err) }
+        setAnalyzing(false)
+    }
+
     const tags = (() => {
         try {
             return typeof entry.tags === 'string' ? JSON.parse(entry.tags) : (entry.tags || [])
@@ -229,6 +240,11 @@ function EntryCard({ entry, expanded, onToggle, onEdit, onDelete }) {
 
                     {/* Actions */}
                     <div className="flex gap-2 mt-4 pt-3 border-t border-[var(--color-gray-200)]">
+                        <button onClick={handleAnalyze} disabled={analyzing}
+                            className="btn-ghost text-xs flex items-center gap-1.5 !px-3 !py-1.5 !min-h-0 text-accent">
+                            {analyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Sparkles className="w-3.5 h-3.5" />}
+                            {analyzing ? 'Analyzing...' : 'Analyze'}
+                        </button>
                         <button onClick={() => onEdit(entry)} className="btn-ghost text-xs flex items-center gap-1.5 !px-3 !py-1.5 !min-h-0">
                             <Pencil className="w-3.5 h-3.5" /> Edit
                         </button>
@@ -236,6 +252,51 @@ function EntryCard({ entry, expanded, onToggle, onEdit, onDelete }) {
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                         </button>
                     </div>
+
+                    {/* Sentiment Analysis Results */}
+                    {sentiment && (
+                        <div className="mt-3 p-3 bg-[var(--insight-bg)] rounded-lg border-l-4 border-l-accent sentiment-reveal">
+                            <div className="flex items-center gap-2 mb-2">
+                                <Sparkles className="w-3.5 h-3.5 text-accent" />
+                                <span className="text-xs font-medium text-[var(--color-gray-700)]">Sentiment Analysis</span>
+                                {sentiment.sentiment_score != null && (
+                                    <span className={`text-xs font-mono font-bold ${sentiment.sentiment_score >= 0.6 ? 'text-emerald-600' :
+                                        sentiment.sentiment_score >= 0.4 ? 'text-amber-600' : 'text-red-500'
+                                        }`}>
+                                        {(sentiment.sentiment_score * 100).toFixed(0)}% {sentiment.sentiment_label || ''}
+                                    </span>
+                                )}
+                            </div>
+                            {sentiment.emotions && (
+                                <div className="flex flex-wrap gap-1.5 mb-2">
+                                    {(Array.isArray(sentiment.emotions) ? sentiment.emotions : Object.entries(sentiment.emotions).map(([k, v]) => `${k} ${typeof v === 'number' ? Math.round(v * 100) + '%' : ''}`)).map((em, i) => (
+                                        <span key={i} className="badge text-[10px]">{typeof em === 'string' ? em : em.emotion || JSON.stringify(em)}</span>
+                                    ))}
+                                </div>
+                            )}
+                            {sentiment.cognitive_distortions && sentiment.cognitive_distortions.length > 0 && (
+                                <div className="mt-2">
+                                    <p className="text-[10px] text-[var(--color-gray-500)] uppercase tracking-wider mb-1">Cognitive Distortions</p>
+                                    <div className="flex flex-wrap gap-1">
+                                        {sentiment.cognitive_distortions.map((cd, i) => (
+                                            <span key={i} className="text-[10px] px-2 py-0.5 bg-[var(--insight-warning-bg)] border border-[var(--color-warning)] rounded-full text-[var(--color-gray-700)]">
+                                                {typeof cd === 'string' ? cd : cd.type || cd.name || JSON.stringify(cd)}
+                                            </span>
+                                        ))}
+                                    </div>
+                                </div>
+                            )}
+                            {sentiment.topics && sentiment.topics.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-2">
+                                    {sentiment.topics.map((topic, i) => (
+                                        <span key={i} className="text-[10px] px-2 py-0.5 bg-[var(--color-gray-100)] rounded-full text-[var(--color-gray-600)]">
+                                            {typeof topic === 'string' ? topic : topic.name || JSON.stringify(topic)}
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -584,9 +645,8 @@ export default function JournalPage() {
                 <div className="flex gap-2 overflow-x-auto pb-1 -mb-1">
                     <button
                         onClick={() => setActiveCategory(null)}
-                        className={`badge whitespace-nowrap transition-all ${
-                            !activeCategory ? 'bg-[var(--color-black)] text-[var(--color-white)]' : ''
-                        }`}
+                        className={`badge whitespace-nowrap transition-all ${!activeCategory ? 'bg-[var(--color-black)] text-[var(--color-white)]' : ''
+                            }`}
                     >
                         All
                     </button>
@@ -594,9 +654,8 @@ export default function JournalPage() {
                         <button
                             key={c}
                             onClick={() => setActiveCategory(activeCategory === c ? null : c)}
-                            className={`badge whitespace-nowrap capitalize transition-all ${
-                                activeCategory === c ? 'bg-[var(--color-black)] text-[var(--color-white)]' : ''
-                            }`}
+                            className={`badge whitespace-nowrap capitalize transition-all ${activeCategory === c ? 'bg-[var(--color-black)] text-[var(--color-white)]' : ''
+                                }`}
                         >
                             {c}
                         </button>

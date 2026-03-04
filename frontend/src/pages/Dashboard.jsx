@@ -11,6 +11,7 @@ import {
     getContextSummary, getActiveContext, getDeepWorkBlocks,
     getPeople, getSocialBatteryHistory, getToxicPatterns,
     getCorrelations, getCounterfactuals, getTasks,
+    getAnomalies, getNudges, dismissNudge, getBurnoutRisk,
 } from '../api'
 import { useChartColors } from '../ThemeContext'
 import { StatCard } from '../components/StatCard'
@@ -45,6 +46,9 @@ export default function Dashboard() {
     const [toxicPatterns, setToxicPatterns] = useState([])
     const [correlations, setCorrelations] = useState([])
     const [counterfactuals, setCounterfactuals] = useState([])
+    const [anomalies, setAnomalies] = useState([])
+    const [nudges, setNudges] = useState([])
+    const [burnoutRisk, setBurnoutRisk] = useState(null)
     const [tasks, setTasks] = useState([])
 
     useEffect(() => {
@@ -55,6 +59,7 @@ export default function Dashboard() {
                     ctxRes, activeRes, deepRes,
                     peopleRes, batteryRes, toxicRes,
                     corrRes, cfRes, tasksRes,
+                    anomalyRes, nudgeRes, burnoutRes,
                 ] = await Promise.allSettled([
                     getDashboardData(),
                     getPredictionStatus(),
@@ -69,6 +74,9 @@ export default function Dashboard() {
                     getCorrelations(30),
                     getCounterfactuals(),
                     getTasks({ status: 'all' }),
+                    getAnomalies(),
+                    getNudges(),
+                    getBurnoutRisk(),
                 ])
 
                 if (dashRes.status === 'fulfilled') setData(dashRes.value.data)
@@ -86,6 +94,9 @@ export default function Dashboard() {
                 if (corrRes.status === 'fulfilled') setCorrelations(corrRes.value.data?.correlations || [])
                 if (cfRes.status === 'fulfilled') setCounterfactuals(cfRes.value.data || [])
                 if (tasksRes.status === 'fulfilled') setTasks(tasksRes.value.data || [])
+                if (anomalyRes.status === 'fulfilled') setAnomalies(anomalyRes.value.data || [])
+                if (nudgeRes.status === 'fulfilled') setNudges(Array.isArray(nudgeRes.value.data) ? nudgeRes.value.data : [])
+                if (burnoutRes.status === 'fulfilled') setBurnoutRisk(burnoutRes.value.data)
 
                 // Fetch habit stats in parallel
                 if (habitsRes.status === 'fulfilled') {
@@ -199,6 +210,25 @@ export default function Dashboard() {
                 </button>
             )}
 
+            {/* Anomaly Alert Banner */}
+            {anomalies.length > 0 && (
+                <button
+                    onClick={() => navigate('/wellness')}
+                    className="w-full card border-l-4 border-l-orange-400 p-4 flex items-start gap-3 text-left hover:bg-[var(--bg-secondary)] transition-colors"
+                >
+                    <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-[var(--text-primary)]">
+                            {anomalies[0].title || 'Anomaly Detected'}
+                        </p>
+                        <p className="text-xs text-[var(--text-muted)] mt-0.5 truncate">
+                            {anomalies[0].description || 'Check your wellness dashboard for details.'}
+                        </p>
+                    </div>
+                    <ArrowUpRight className="w-4 h-4 text-[var(--text-muted)] flex-shrink-0" />
+                </button>
+            )}
+
             {/* Active Timer Banner */}
             {activeContext?.active && (
                 <button
@@ -220,7 +250,7 @@ export default function Dashboard() {
             )}
 
             {/* Stat Cards Row */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 sm:gap-3">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 sm:gap-3">
                 <StatCard
                     label="Mood"
                     value={todayMood ? `${todayMood}/10` : '--'}
@@ -257,6 +287,13 @@ export default function Dashboard() {
                     sub={dueTodayCount > 0 ? 'Due today' : 'Nothing due today'}
                     icon={ListChecks}
                     onClick={() => navigate('/tasks')}
+                />
+                <StatCard
+                    label="Burnout"
+                    value={burnoutRisk?.risk_score != null ? `${Math.round(burnoutRisk.risk_score)}%` : '--'}
+                    sub={burnoutRisk?.risk_score >= 70 ? '⚠️ High risk' : burnoutRisk?.risk_score >= 40 ? 'Moderate' : 'Low risk'}
+                    icon={AlertTriangle}
+                    onClick={() => navigate('/wellness')}
                 />
             </div>
 
@@ -565,6 +602,41 @@ export default function Dashboard() {
                         <span className="flex items-center gap-1">
                             <span className="inline-block w-2 h-2 rounded-sm" style={{ backgroundColor: colors.mutedStroke, opacity: 0.5 }} /> Deep work
                         </span>
+                    </div>
+                </div>
+            )}
+
+            {/* Smart Nudges */}
+            {nudges.length > 0 && (
+                <div className="card p-4 sm:p-6">
+                    <h3 className="font-semibold text-[var(--text-primary)] mb-4 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" />
+                        Smart Nudges
+                    </h3>
+                    <div className="space-y-2">
+                        {nudges.slice(0, 4).map((nudge, i) => (
+                            <div key={nudge.id || i} className="p-3 bg-[var(--bg-secondary)] rounded-lg flex items-start gap-3">
+                                <div className="flex-1 min-w-0">
+                                    <p className="text-sm font-medium text-[var(--text-primary)]">
+                                        {nudge.title || nudge.message || 'Nudge'}
+                                    </p>
+                                    <p className="text-xs text-[var(--text-secondary)] mt-0.5">
+                                        {nudge.description || nudge.body || ''}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={async () => {
+                                        try {
+                                            await dismissNudge(nudge.id)
+                                            setNudges(prev => prev.filter(n => n.id !== nudge.id))
+                                        } catch { }
+                                    }}
+                                    className="text-xs text-[var(--text-muted)] hover:text-[var(--text-primary)] flex-shrink-0"
+                                >
+                                    Dismiss
+                                </button>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

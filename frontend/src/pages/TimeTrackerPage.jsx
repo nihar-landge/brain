@@ -24,6 +24,8 @@ import {
   getTasks,
   suggestDopamine,
   updateDopamineEvent,
+  getOptimalSchedule,
+  getScheduleRecommendations,
 } from '../api'
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts'
 
@@ -84,6 +86,8 @@ export default function TimeTrackerPage() {
   const [selectedTaskId, setSelectedTaskId] = useState('')
   const [dopamineSuggestion, setDopamineSuggestion] = useState(null)
   const [breakSecondsLeft, setBreakSecondsLeft] = useState(0)
+  const [schedule, setSchedule] = useState(null)
+  const [scheduleRecs, setScheduleRecs] = useState([])
   const [shownLongSessionMilestones, setShownLongSessionMilestones] = useState({
     sixty: false,
     ninety: false,
@@ -95,7 +99,7 @@ export default function TimeTrackerPage() {
   const loadData = useCallback(async () => {
     setLoading(true)
     try {
-      const [aRes, sRes, dRes, oRes, rRes, hRes, tRes] = await Promise.allSettled([
+      const [aRes, sRes, dRes, oRes, rRes, hRes, tRes, schRes, schRecRes] = await Promise.allSettled([
         getActiveContext(),
         getContextSummary(),
         getDeepWorkBlocks(),
@@ -103,6 +107,8 @@ export default function TimeTrackerPage() {
         getAttentionResidue(),
         getHabits(),
         getTasks({ status: 'all' }),
+        getOptimalSchedule(),
+        getScheduleRecommendations(),
       ])
 
       if (aRes.status === 'fulfilled') {
@@ -124,6 +130,8 @@ export default function TimeTrackerPage() {
         const openTasks = (tRes.value.data || []).filter((t) => t.status !== 'done')
         setTasks(openTasks)
       }
+      if (schRes.status === 'fulfilled') setSchedule(schRes.value.data)
+      if (schRecRes.status === 'fulfilled') setScheduleRecs(Array.isArray(schRecRes.value.data) ? schRecRes.value.data : schRecRes.value.data?.recommendations || [])
     } finally {
       setLoading(false)
     }
@@ -229,7 +237,7 @@ export default function TimeTrackerPage() {
       setContextName('')
       setSelectedHabitId('')
       setSelectedTaskId('')
-    } catch {}
+    } catch { }
   }
 
   const handleStop = async () => {
@@ -263,14 +271,14 @@ export default function TimeTrackerPage() {
       }
 
       loadData()
-    } catch {}
+    } catch { }
   }
 
   const handleInterrupt = async () => {
     try {
       await logInterruption('manual')
       loadData()
-    } catch {}
+    } catch { }
   }
 
   const formatTime = (mins) => {
@@ -296,6 +304,7 @@ export default function TimeTrackerPage() {
     { id: 'timer', label: 'Timer', icon: Clock },
     { id: 'summary', label: 'Today', icon: BarChart3 },
     { id: 'deepwork', label: 'Deep Work', icon: Brain },
+    { id: 'schedule', label: 'Schedule', icon: Target },
     { id: 'insights', label: 'Insights', icon: Zap },
   ]
 
@@ -356,9 +365,8 @@ export default function TimeTrackerPage() {
           <button
             key={t.id}
             onClick={() => setTab(t.id)}
-            className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${
-              tab === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
-            }`}
+            className={`flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium rounded-lg transition-colors whitespace-nowrap ${tab === t.id ? 'bg-white text-black shadow-sm' : 'text-gray-500 hover:text-gray-700'
+              }`}
           >
             <t.icon className="w-4 h-4" /> {t.label}
           </button>
@@ -580,11 +588,10 @@ export default function TimeTrackerPage() {
                         key={t}
                         type="button"
                         onClick={() => setContextType(t)}
-                        className={`px-2.5 py-1.5 rounded-full text-xs border transition-colors ${
-                          contextType === t
+                        className={`px-2.5 py-1.5 rounded-full text-xs border transition-colors ${contextType === t
                             ? 'bg-black text-white border-black'
                             : 'border-gray-200 text-gray-600 hover:bg-gray-100'
-                        }`}
+                          }`}
                       >
                         {t.replace('_', ' ')}
                       </button>
@@ -736,6 +743,69 @@ export default function TimeTrackerPage() {
                 ))}
               </div>
             </>
+          )}
+        </div>
+      )}
+
+      {tab === 'schedule' && (
+        <div className="space-y-4 animate-in">
+          {/* Optimal Schedule */}
+          {schedule ? (
+            <div className="card p-5 sm:p-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <Target className="w-4 h-4" />
+                Optimal Schedule
+              </h3>
+              {schedule.blocks ? (
+                <div className="space-y-2">
+                  {(Array.isArray(schedule.blocks) ? schedule.blocks : []).map((block, i) => (
+                    <div key={i} className="flex items-center gap-3 p-3 bg-gray-100/50 rounded-lg">
+                      <div className="flex-shrink-0">
+                        <span className="text-xs font-mono text-gray-500">
+                          {block.start_time || block.start || ''} - {block.end_time || block.end || ''}
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-900 capitalize">{(block.type || block.activity || '').replace(/_/g, ' ')}</p>
+                        {block.description && <p className="text-xs text-gray-500">{block.description}</p>}
+                      </div>
+                      {block.energy_level && (
+                        <span className="text-xs font-mono text-gray-400">⚡{block.energy_level}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-sm text-gray-600 whitespace-pre-wrap">
+                  {typeof schedule === 'string' ? schedule : JSON.stringify(schedule, null, 2)}
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="card p-8 text-center text-gray-500">
+              <Target className="w-8 h-8 mx-auto mb-3 text-gray-300" />
+              <p>Track more sessions to unlock AI-optimized schedule recommendations.</p>
+            </div>
+          )}
+
+          {/* Schedule Recommendations */}
+          {scheduleRecs.length > 0 && (
+            <div className="card p-5 sm:p-6">
+              <h3 className="text-sm font-medium text-gray-900 mb-4 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-accent" />
+                Recommendations
+              </h3>
+              <div className="space-y-2">
+                {scheduleRecs.slice(0, 5).map((rec, i) => (
+                  <div key={i} className="p-3 bg-gray-100/50 rounded-lg">
+                    <p className="text-sm text-gray-900">
+                      {typeof rec === 'string' ? rec : rec.title || rec.recommendation || rec.suggestion || JSON.stringify(rec)}
+                    </p>
+                    {rec.description && <p className="text-xs text-gray-500 mt-1">{rec.description}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       )}

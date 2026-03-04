@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
-import { CheckCircle2, Circle, Plus, Flame, Trash2, X } from 'lucide-react'
-import { getHabits, createHabit, logHabit, getHabitStats, deleteHabit } from '../api'
+import { CheckCircle2, Circle, Plus, Flame, Trash2, X, Sparkles } from 'lucide-react'
+import { getHabits, createHabit, logHabit, getHabitStats, deleteHabit, getHabitStackingSuggestions } from '../api'
 
 export default function HabitsPage() {
     const [habits, setHabits] = useState([])
@@ -8,6 +8,7 @@ export default function HabitsPage() {
     const [showForm, setShowForm] = useState(false)
     const [form, setForm] = useState({ habit_name: '', habit_description: '', habit_category: '', target_frequency: 'daily' })
     const [loading, setLoading] = useState(true)
+    const [stackingSuggestions, setStackingSuggestions] = useState([])
 
     const fetchHabits = async () => {
         try {
@@ -21,6 +22,11 @@ export default function HabitsPage() {
                 } catch { statsMap[h.id] = null }
             }
             setStats(statsMap)
+            // Fetch stacking suggestions
+            try {
+                const { data: suggestions } = await getHabitStackingSuggestions()
+                setStackingSuggestions(Array.isArray(suggestions) ? suggestions : suggestions?.suggestions || [])
+            } catch { setStackingSuggestions([]) }
         } catch (e) { console.error(e) }
         setLoading(false)
     }
@@ -75,11 +81,10 @@ export default function HabitsPage() {
                     <div className="flex gap-2 flex-wrap">
                         {categories.map(cat => (
                             <button key={cat} type="button" onClick={() => setForm({ ...form, habit_category: cat })}
-                                className={`px-3 py-1.5 rounded-md text-[12px] capitalize transition-colors ${
-                                    form.habit_category === cat
+                                className={`px-3 py-1.5 rounded-md text-[12px] capitalize transition-colors ${form.habit_category === cat
                                         ? 'bg-gray-200 text-black'
                                         : 'text-text-muted border border-border hover:border-border-light'
-                                }`}>
+                                    }`}>
                                 {cat}
                             </button>
                         ))}
@@ -87,11 +92,10 @@ export default function HabitsPage() {
                     <div className="flex gap-2">
                         {['daily', '3x_per_week', 'weekly'].map(f => (
                             <button key={f} type="button" onClick={() => setForm({ ...form, target_frequency: f })}
-                                className={`px-3 py-1.5 rounded-md text-[12px] transition-colors ${
-                                    form.target_frequency === f
+                                className={`px-3 py-1.5 rounded-md text-[12px] transition-colors ${form.target_frequency === f
                                         ? 'bg-gray-200 text-black'
                                         : 'text-text-muted border border-border hover:border-border-light'
-                                }`}>
+                                    }`}>
                                 {f.replace(/_/g, ' ')}
                             </button>
                         ))}
@@ -181,6 +185,32 @@ export default function HabitsPage() {
                                 </div>
                             )
                         })}
+                    </div>
+                </div>
+            )}
+            {/* Stacking Suggestions */}
+            {stackingSuggestions.length > 0 && (
+                <div>
+                    <h3 className="text-[12px] text-text-muted mb-3 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3" />
+                        Stacking Suggestions
+                    </h3>
+                    <div className="space-y-2">
+                        {stackingSuggestions.slice(0, 4).map((suggestion, i) => (
+                            <div key={i} className="card px-4 py-3">
+                                <p className="text-[13px] font-medium text-text">
+                                    {suggestion.title || suggestion.suggestion || `${suggestion.anchor_habit || ''} → ${suggestion.new_habit || ''}`}
+                                </p>
+                                <p className="text-[11px] text-text-faint mt-1">
+                                    {suggestion.description || suggestion.reason || suggestion.rationale || ''}
+                                </p>
+                                {suggestion.confidence && (
+                                    <span className="text-[10px] text-text-muted mt-1 inline-block">
+                                        Confidence: {typeof suggestion.confidence === 'number' ? `${Math.round(suggestion.confidence * 100)}%` : suggestion.confidence}
+                                    </span>
+                                )}
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}

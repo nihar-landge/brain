@@ -151,4 +151,54 @@ export const runCausalAnalysis = (treatment, outcome) => api.post('/causal/analy
 export const getCounterfactuals = () => api.get('/causal/counterfactuals')
 export const suggestExperiments = () => api.get('/causal/experiments')
 
+// ======================== SENTIMENT ANALYSIS ========================
+
+export const analyzeSentiment = (entryId) => api.post('/sentiment/analyze', { entry_id: entryId })
+export const getSentimentTimeline = (days = 30) => api.get('/sentiment/timeline', { params: { days } })
+
+// ======================== REPORTS ========================
+
+export const getWeeklyReport = () => api.get('/reports/weekly')
+export const getMonthlyReport = () => api.get('/reports/monthly')
+export const generateReport = (type = 'weekly') => api.post('/reports/generate', { report_type: type })
+
+// ======================== NUDGES ========================
+
+export const getNudges = () => api.get('/nudges')
+export const dismissNudge = (nudgeId) => api.post('/nudges/dismiss', { nudge_id: nudgeId })
+export const getNudgeSettings = () => api.get('/nudges/settings')
+
+// ======================== DREAMS ========================
+
+export const getDreams = () => api.get('/dreams')
+export const getDreamPatterns = () => api.get('/dreams/patterns')
+export const interpretDream = (entryId) => api.post('/dreams/interpret', { entry_id: entryId })
+
+// ======================== SLEEP ========================
+
+export const logSleep = (data) => api.post('/sleep/log', data)
+export const getSleepCorrelations = () => api.get('/sleep/correlations')
+export const getSleepQuality = () => api.get('/sleep/quality')
+
+// ======================== BURNOUT ========================
+
+export const getBurnoutRisk = () => api.get('/burnout/risk')
+export const getBurnoutFactors = () => api.get('/burnout/factors')
+export const getBurnoutHistory = () => api.get('/burnout/history')
+
+// ======================== SCHEDULE ========================
+
+export const getOptimalSchedule = () => api.get('/schedule/optimal')
+export const getScheduleRecommendations = () => api.get('/schedule/recommendations')
+
+// ======================== HABIT STACKING ========================
+
+export const getHabitStackingSuggestions = () => api.get('/habits/stacking-suggestions')
+
+// ======================== ANOMALIES ========================
+
+export const getAnomalies = () => api.get('/anomalies')
+export const getAnomalyHistory = () => api.get('/anomalies/history')
+
 export default api
+

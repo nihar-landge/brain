@@ -109,8 +109,52 @@ class AnomalyDetector:
             )
             
     def _check_habit_streak_broken(self, db: Session, user_id: int, target_date):
-        # Check if a long streak (>7 days) was broken yesterday
-        pass
+        """Check if a long streak (>7 days) was broken yesterday."""
+        from models.habits import Habit
+
+        active_habits = db.query(Habit).filter(
+            Habit.user_id == user_id,
+            Habit.status == "active"
+        ).all()
+
+        for habit in active_habits:
+            # Check if there was NO log on target_date
+            log_on_date = db.query(HabitLog).filter(
+                HabitLog.habit_id == habit.id,
+                HabitLog.log_date == target_date,
+                HabitLog.completed == True
+            ).first()
+
+            if log_on_date:
+                continue  # Habit was completed, no streak broken
+
+            # Count consecutive days completed before target_date
+            streak = 0
+            check_date = target_date - timedelta(days=1)
+            while True:
+                prev_log = db.query(HabitLog).filter(
+                    HabitLog.habit_id == habit.id,
+                    HabitLog.log_date == check_date,
+                    HabitLog.completed == True
+                ).first()
+                if prev_log:
+                    streak += 1
+                    check_date -= timedelta(days=1)
+                else:
+                    break
+
+            if streak >= 7:
+                self._create_alert(
+                    db, user_id,
+                    "habit_streak_broken",
+                    f"Streak Broken: {habit.habit_name}",
+                    f"Your {streak}-day streak for '{habit.habit_name}' was broken yesterday. Don't worry — restart today!",
+                    "medium",
+                    metric_name=f"streak_{habit.habit_name}",
+                    baseline=float(streak),
+                    current=0.0,
+                    action={"action": "log_habit", "habit_id": habit.id}
+                )
 
     def _create_alert(self, db: Session, user_id: int, type: str, title: str, 
                       description: str, severity: str, metric_name: str, 

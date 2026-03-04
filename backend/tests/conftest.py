@@ -3,6 +3,9 @@ Test Configuration & Fixtures.
 Provides in-memory SQLite database and FastAPI TestClient for all tests.
 """
 
+import os
+os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
@@ -11,6 +14,8 @@ from sqlalchemy.orm import sessionmaker
 from utils.database import Base, get_db
 from main import app
 from models import user, journal, habits, goals  # noqa: F401
+from models import social, context, dopamine  # noqa: F401
+from models import sleep, location, nudges, reports, anomalies  # noqa: F401
 
 from sqlalchemy.pool import StaticPool
 

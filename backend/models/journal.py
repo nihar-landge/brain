@@ -2,7 +2,7 @@
 Journal Entry, Event, Decision, Mood Log, Prediction, and Insight models.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
@@ -48,6 +48,19 @@ class JournalEntry(Base):
     location = Column(String(200), nullable=True)
     weather = Column(String(50), nullable=True)
     sleep_hours = Column(Float, nullable=True)
+
+    # Sentiment Analysis (Phase 2)
+    sentiment_score = Column(Float, nullable=True)  # -1.0 to 1.0
+    sentiment_label = Column(String(20), nullable=True)  # positive, negative, neutral, mixed
+    emotions = Column(JSON, nullable=True)  # [{"emotion": "joy", "score": 0.8}, ...]
+    topics = Column(JSON, nullable=True)  # ["work", "relationships", ...]
+    cognitive_distortions = Column(JSON, nullable=True)  # ["catastrophizing", ...]
+
+    # Dream Analysis (Phase 2)
+    dream_type = Column(String(50), nullable=True)  # lucid, nightmare, recurring, symbolic
+    dream_symbols = Column(JSON, nullable=True)  # ["water", "flying", ...]
+    dream_interpretation = Column(Text, nullable=True)
+    dream_recurring_pattern = Column(Boolean, nullable=True)
 
     # Embeddings Reference
     embedding_id = Column(String(100), nullable=True)

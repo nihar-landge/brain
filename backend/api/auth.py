@@ -2,6 +2,8 @@
 Authentication API — Registration, Login, Google OAuth, Token Refresh.
 """
 
+from typing import Optional
+
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, EmailStr
@@ -29,7 +31,7 @@ class RegisterRequest(BaseModel):
     username: str
     email: str
     password: str
-    full_name: str | None = None
+    full_name: Optional[str] = None
 
 
 class LoginRequest(BaseModel):
