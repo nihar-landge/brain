@@ -3,7 +3,7 @@ Google Calendar integration service.
 Creates/updates events in a dedicated "Brain Calendar".
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from urllib.parse import urlencode
 
