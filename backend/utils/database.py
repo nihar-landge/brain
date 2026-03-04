@@ -208,3 +208,25 @@ def _migrate_tables():
                         text(f"ALTER TABLE journal_entries ADD COLUMN {col_name} {col_type}")
                     )
                     conn.commit()
+
+        # Migration 6: Explicitly create new tables if they were missed by create_all()
+        # This happens in SQLite when the database file already exists but the models weren't imported yet.
+        from models import sleep, location, nudges, reports, anomalies, dopamine
+        
+        models_to_ensure = [
+            sleep.SleepLog,
+            location.LocationLog,
+            nudges.Nudge,
+            nudges.NudgeSettings,
+            reports.LifeReport,
+            anomalies.AnomalyAlert,
+            dopamine.DopamineItem,
+            dopamine.DopamineEvent
+        ]
+        
+        for model in models_to_ensure:
+            try:
+                model.__table__.create(engine, checkfirst=True)
+            except Exception as e:
+                # Catch errors if table already exists or other dialect issues
+                print(f"Schema warning for {model.__tablename__}: {e}")
