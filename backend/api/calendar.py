@@ -205,7 +205,7 @@ async def google_status(user: User = Depends(verify_api_key), db: Session = Depe
 
 
 @router.get("/google/auth-url", response_model=dict)
-async def google_auth_url():
+async def google_auth_url(user: User = Depends(verify_api_key)):
     if not google_calendar_service.is_configured():
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
     return {"auth_url": google_calendar_service.get_auth_url(user_id=user.id)}
