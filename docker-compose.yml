@@ -95,6 +95,11 @@ services:
       backend:
         condition: service_healthy
     restart: unless-stopped
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
 
 volumes:
   pgdata:
+  caddy_data:
+  caddy_config:

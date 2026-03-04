@@ -1,11 +1,8 @@
 {
-    # Use internal CA for local/IP self-signed certs
-    # If a real domain is provided, omit this to use Let's Encrypt
-    auto_https disable_certs
+    # Automatically provision Let's Encrypt SSL certificates
 }
 
-:80, :443 {
-    tls internal
+brainfocus.duckdns.org {
 
     root * /srv
     encode gzip zstd
