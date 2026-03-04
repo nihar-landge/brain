@@ -4,14 +4,14 @@ from typing import List
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from ml.habit_stacker import habit_stacker
 
 router = APIRouter()
 
 @router.get("/stacking-suggestions")
 async def get_habit_stacking_suggestions(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """

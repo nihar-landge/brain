@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from utils.database import get_db
 from models.user import User
 from models.journal import JournalEntry
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from services.dream_service import dream_analyzer
 
 router = APIRouter()
@@ -17,7 +17,7 @@ class InterpretRequest(BaseModel):
 @router.post("/interpret")
 async def interpret_dream(
     req: InterpretRequest,
-    user: User = Depends(get_current_user)
+    user: User = Depends(verify_api_key)
 ):
     """
     Analyze raw dream text for symbols and meaning.
@@ -31,7 +31,7 @@ async def interpret_dream(
 
 @router.get("/patterns")
 async def get_recurring_patterns(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """
@@ -43,7 +43,7 @@ async def get_recurring_patterns(
 @router.get("/history")
 async def get_dream_history(
     limit: int = 10,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """Get past journal entries that contain dreams."""

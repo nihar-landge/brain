@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from services.location_service import location_service
 from models.location import LocationLog
 
@@ -21,7 +21,7 @@ class LocationCreate(BaseModel):
 @router.post("/log")
 async def log_current_location(
     data: LocationCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     if data.place_name:
@@ -46,7 +46,7 @@ async def log_current_location(
 @router.get("/timeline")
 async def get_location_timeline(
     days: int = 7,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     start_date = datetime.now(timezone.utc) - timedelta(days=days)
@@ -71,7 +71,7 @@ async def get_location_timeline(
 
 @router.get("/patterns")
 async def get_location_patterns(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     return location_service.get_location_patterns(db, user.id)

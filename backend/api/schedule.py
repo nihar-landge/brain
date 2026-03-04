@@ -3,14 +3,14 @@ from sqlalchemy.orm import Session
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from ml.schedule_optimizer import schedule_optimizer
 
 router = APIRouter()
 
 @router.get("/optimal")
 async def get_optimal_schedule(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """
@@ -22,7 +22,7 @@ async def get_optimal_schedule(
 
 @router.get("/recommendations")
 async def get_schedule_recommendations(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """

@@ -7,7 +7,7 @@ from typing import Optional, List
 from utils.database import get_db
 from models.user import User
 from models.sleep import SleepLog
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from ml.sleep_mood_engine import sleep_mood_engine
 
 router = APIRouter()
@@ -27,7 +27,7 @@ class SleepLogCreate(BaseModel):
 @router.post("/log")
 async def log_sleep(
     data: SleepLogCreate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     try:
@@ -73,7 +73,7 @@ async def log_sleep(
 @router.get("/correlations")
 async def get_sleep_correlations(
     days: int = 30,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """Get the calculated correlation between sleep and mood."""
@@ -82,7 +82,7 @@ async def get_sleep_correlations(
 @router.get("/history")
 async def get_sleep_history(
     limit: int = 7,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     logs = db.query(SleepLog).filter(

@@ -17,8 +17,8 @@ from utils.auth_jwt import (
     create_refresh_token,
     decode_token,
     verify_google_token,
-    get_current_user,
 )
+from utils.auth import verify_api_key
 from models.user import User
 
 router = APIRouter()
@@ -223,7 +223,7 @@ async def refresh_token(data: RefreshRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me")
-async def get_me(user: User = Depends(get_current_user)):
+async def get_me(user: User = Depends(verify_api_key)):
     """Get current user profile."""
     if user is None:
         raise HTTPException(

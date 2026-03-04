@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from services.report_service import report_service
 from models.reports import LifeReport
 
@@ -19,7 +19,7 @@ class GenerateReportRequest(BaseModel):
 @router.post("/generate")
 async def generate_report(
     req: GenerateReportRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """Generate or retrieve a LifeReport for the specific period."""
@@ -53,7 +53,7 @@ async def generate_report(
 async def get_reports(
     report_type: str,
     limit: int = 5,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """Get history of generated reports."""
@@ -70,7 +70,7 @@ async def get_reports(
 @router.get("/{report_id}/detail")
 async def get_report_detail(
     report_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     report = db.query(LifeReport).filter(

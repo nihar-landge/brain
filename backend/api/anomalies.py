@@ -5,7 +5,7 @@ from typing import List
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from models.anomalies import AnomalyAlert
 from ml.anomaly_detector import anomaly_detector
 
@@ -13,7 +13,7 @@ router = APIRouter()
 
 @router.get("")
 async def get_active_anomalies(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """
@@ -35,7 +35,7 @@ async def get_active_anomalies(
 @router.post("/{alert_id}/acknowledge")
 async def acknowledge_anomaly(
     alert_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     alert = db.query(AnomalyAlert).filter(
@@ -53,7 +53,7 @@ async def acknowledge_anomaly(
 @router.post("/{alert_id}/false-positive")
 async def mark_false_positive(
     alert_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     alert = db.query(AnomalyAlert).filter(
@@ -72,7 +72,7 @@ async def mark_false_positive(
 @router.get("/history")
 async def get_anomaly_history(
     limit: int = 10,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     alerts = db.query(AnomalyAlert).filter(

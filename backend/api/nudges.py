@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from services.nudge_service import nudge_engine
 from models.nudges import Nudge, NudgeSettings
 
@@ -23,7 +23,7 @@ class NudgeSettingsUpdate(BaseModel):
 
 @router.get("")
 async def get_active_nudges(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """
@@ -54,7 +54,7 @@ async def get_active_nudges(
 @router.post("/{nudge_id}/dismiss")
 async def dismiss_nudge(
     nudge_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     nudge = db.query(Nudge).filter(
@@ -73,7 +73,7 @@ async def dismiss_nudge(
 @router.post("/{nudge_id}/interact")
 async def interact_nudge(
     nudge_id: int,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     nudge = db.query(Nudge).filter(
@@ -91,7 +91,7 @@ async def interact_nudge(
 
 @router.get("/settings")
 async def get_nudge_settings(
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     settings = nudge_engine.get_or_create_settings(db, user.id)
@@ -109,7 +109,7 @@ async def get_nudge_settings(
 @router.put("/settings")
 async def update_nudge_settings(
     updates: NudgeSettingsUpdate,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     settings = nudge_engine.get_or_create_settings(db, user.id)

@@ -5,7 +5,7 @@ from pydantic import BaseModel
 
 from utils.database import get_db
 from models.user import User
-from utils.auth_jwt import get_current_user
+from utils.auth import verify_api_key
 from services.sentiment_service import sentiment_service
 
 router = APIRouter()
@@ -23,7 +23,7 @@ class AnalyzeResponse(BaseModel):
 @router.post("/analyze", response_model=AnalyzeResponse)
 async def analyze_entry_text(
     request: AnalyzeRequest,
-    user: User = Depends(get_current_user)
+    user: User = Depends(verify_api_key)
 ):
     """
     Analyze raw journal text for sentiment and NLP traits.
@@ -38,7 +38,7 @@ async def analyze_entry_text(
 @router.get("/timeline")
 async def get_emotion_timeline(
     days: int = 30,
-    user: User = Depends(get_current_user),
+    user: User = Depends(verify_api_key),
     db: Session = Depends(get_db)
 ):
     """
