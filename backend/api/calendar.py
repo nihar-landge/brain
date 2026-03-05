@@ -219,7 +219,14 @@ async def google_callback(
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
 
     user_id = int(state) if state and state.isdigit() else 1
-    await google_calendar_service.exchange_code(db, code, user_id=user_id)
+    import httpx
+    try:
+        await google_calendar_service.exchange_code(db, code, user_id=user_id)
+    except httpx.HTTPStatusError as e:
+        error_msg = f"Google OAuth failed: {e.response.text}"
+        print(error_msg)
+        raise HTTPException(status_code=400, detail=error_msg)
+        
     return {"status": "success", "message": "Google Calendar connected"}
 
 
