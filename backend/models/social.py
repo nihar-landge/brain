@@ -3,7 +3,7 @@ Social Graph models: People, SocialInteraction, SocialBatteryLog.
 Tracks relationships, social interactions, and their impact on mood/energy.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,

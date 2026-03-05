@@ -3,7 +3,7 @@ Tasks API Endpoints.
 Task planning with goal/habit tagging, scheduling, and priorities.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException

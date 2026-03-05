@@ -118,7 +118,7 @@ class DataManager:
         Update with consistency across all stores.
         """
         # 1. Update SQLite (master)
-        entry = self.db.query(JournalEntry).get(entry_id)
+        entry = self.db.get(JournalEntry, entry_id)
         if not entry:
             return None
 
@@ -156,7 +156,7 @@ class DataManager:
         """
         Delete with consistency (CASCADE across all stores).
         """
-        entry = self.db.query(JournalEntry).get(entry_id)
+        entry = self.db.get(JournalEntry, entry_id)
         if not entry:
             return False
 
@@ -204,7 +204,7 @@ class DataManager:
             if results["ids"] and results["ids"][0]:
                 for i, doc_id in enumerate(results["ids"][0]):
                     entry_id = int(doc_id.replace("entry_", ""))
-                    entry = self.db.query(JournalEntry).get(entry_id)
+                    entry = self.db.get(JournalEntry, entry_id)
                     if entry:
                         enriched.append(
                             {
@@ -222,7 +222,7 @@ class DataManager:
 
     def get_entry_with_context(self, entry_id: int):
         """Retrieve entry with full context from all sources."""
-        entry = self.db.query(JournalEntry).get(entry_id)
+        entry = self.db.get(JournalEntry, entry_id)
         if not entry:
             return None
 

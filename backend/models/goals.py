@@ -2,7 +2,7 @@
 Goal and GoalMilestone models.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,
@@ -61,7 +61,7 @@ class Goal(Base):
     last_progress_update = Column(Date, nullable=True)
 
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class GoalMilestone(Base):

@@ -115,7 +115,10 @@ async def get_journal_entries(
 @router.get("/{entry_id}", response_model=dict)
 async def get_journal_entry(entry_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get specific journal entry."""
-    entry = db.query(JournalEntry).get(entry_id)
+    entry = db.query(JournalEntry).filter(
+        JournalEntry.id == entry_id,
+        JournalEntry.user_id == user.id
+    ).first()
     if not entry:
         raise HTTPException(status_code=404, detail="Entry not found")
 

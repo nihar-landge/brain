@@ -8,7 +8,7 @@ Manages memory across 4 tiers:
 - Tier 4: Compressed Summaries (weekly/monthly/yearly)
 """
 
-from datetime import datetime, timezone, timezone, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy.orm import Session
@@ -174,10 +174,9 @@ Current Context (This Week):
     def _generate_summary(self, entries, summary_type="weekly") -> str:
         """Use Gemini to generate compressed summary."""
         try:
-            import google.generativeai as genai
+            from google import genai
 
-            genai.configure(api_key=GEMINI_API_KEY)
-            model = genai.GenerativeModel("gemini-2.0-flash")
+            client = genai.Client(api_key=GEMINI_API_KEY)
 
             entries_text = "\n".join(e.content[:200] for e in entries[:10])
             prompt = SMART_MEMORY_SUMMARY_PROMPT.format(
@@ -186,7 +185,9 @@ Current Context (This Week):
                 entries_text=entries_text
             )
 
-            response = model.generate_content(prompt)
+            response = client.models.generate_content(
+                model="gemini-2.0-flash", contents=prompt
+            )
             return response.text
 
         except Exception as e:
@@ -209,7 +210,7 @@ Current Context (This Week):
         """Get user preferences."""
         from models.user import User
 
-        user = self.db.query(User).get(user_id)
+        user = self.db.get(User, user_id)
         if user and user.preferences:
             return list(user.preferences.values()) if isinstance(user.preferences, dict) else []
         return []

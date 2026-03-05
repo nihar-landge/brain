@@ -8,11 +8,14 @@ Adapts prediction strategy based on available data:
 - 365+ entries: Advanced ML with high confidence
 """
 
+import logging
 from datetime import datetime, timedelta
 from typing import Optional
 
 import numpy as np
 from sqlalchemy.orm import Session
+
+logger = logging.getLogger(__name__)
 
 from models.journal import JournalEntry, MoodLog, MLFeature
 from models.habits import Habit, HabitLog
@@ -61,6 +64,7 @@ class AdaptiveMLPredictor:
                 return self._ml_mood_prediction(user_id, target_dt)
 
         except Exception as e:
+            logger.warning("Mood prediction failed for user %s: %s", user_id, e, exc_info=True)
             fallback = self._simple_average_mood(user_id)
             return {
                 "prediction": fallback,
@@ -393,4 +397,5 @@ class AdaptiveMLPredictor:
             }
 
         except Exception as e:
+            logger.warning("ML mood prediction failed for user %s: %s", user_id, e, exc_info=True)
             return self._mood_baseline(user_id, target_date)

@@ -117,7 +117,7 @@ async def get_habits(
 @router.get("/{habit_id}", response_model=dict)
 async def get_habit(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get habit details."""
-    habit = db.query(Habit).get(habit_id)
+    habit = db.get(Habit, habit_id)
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
@@ -139,7 +139,7 @@ async def update_habit(
     habit_id: int, updates: HabitUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Update habit."""
-    habit = db.query(Habit).get(habit_id)
+    habit = db.get(Habit, habit_id)
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
@@ -155,7 +155,7 @@ async def update_habit(
 @router.delete("/{habit_id}", response_model=dict)
 async def delete_habit(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Delete habit."""
-    habit = db.query(Habit).get(habit_id)
+    habit = db.get(Habit, habit_id)
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
@@ -167,7 +167,7 @@ async def delete_habit(habit_id: int, user: User = Depends(verify_api_key), db: 
 @router.post("/{habit_id}/log", response_model=dict)
 async def log_habit(habit_id: int, log: HabitLogCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Log habit completion for today."""
-    habit = db.query(Habit).get(habit_id)
+    habit = db.get(Habit, habit_id)
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 
@@ -206,7 +206,7 @@ async def log_habit(habit_id: int, log: HabitLogCreate, user: User = Depends(ver
 @router.get("/{habit_id}/stats", response_model=dict)
 async def get_habit_stats(habit_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get habit statistics including streaks and completion rates."""
-    habit = db.query(Habit).get(habit_id)
+    habit = db.get(Habit, habit_id)
     if not habit:
         raise HTTPException(status_code=404, detail="Habit not found")
 

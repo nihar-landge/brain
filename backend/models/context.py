@@ -3,7 +3,7 @@ Context Switching models: ContextLog, DeepWorkBlock.
 Tracks task/context switches, cognitive load, and deep work sessions.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,

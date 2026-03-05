@@ -129,16 +129,16 @@ def generate_embedding(text: str, task_type: str = "retrieval_document") -> list
     Returns:
         List of floats (768-dim vector)
     """
-    import google.generativeai as genai
+    from google import genai
 
-    genai.configure(api_key=GEMINI_API_KEY)
+    client = genai.Client(api_key=GEMINI_API_KEY)
 
-    result = genai.embed_content(
+    result = client.models.embed_content(
         model=EMBEDDING_MODEL,  # models/gemini-embedding-001
-        content=text,
-        task_type=task_type,
+        contents=text,
+        config={"task_type": task_type},
     )
-    return result["embedding"]
+    return result.embeddings[0].values
 
 
 # ======================== APPLICATION SETTINGS ========================
@@ -172,4 +172,4 @@ ML_MIN_SAMPLES = {
     "decision": 10,
 }
 
-ML_MODELS_DIR = "./ml/models"
+ML_MODELS_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml", "models")

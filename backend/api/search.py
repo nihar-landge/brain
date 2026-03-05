@@ -62,7 +62,7 @@ async def find_similar(req: SimilarRequest, db: Session = Depends(get_db)):
     """Find entries similar to a given journal entry."""
     from models.journal import JournalEntry
 
-    entry = db.query(JournalEntry).get(req.entry_id)
+    entry = db.get(JournalEntry, req.entry_id)
     if not entry:
         return {"error": "Entry not found", "results": []}
 
@@ -78,7 +78,7 @@ async def find_similar(req: SimilarRequest, db: Session = Depends(get_db)):
     ):
         try:
             eid = int(doc_id.replace("journal_", ""))
-            e = db.query(JournalEntry).get(eid)
+            e = db.get(JournalEntry, eid)
             if e and e.id != req.entry_id:
                 results.append({
                     "id": e.id,

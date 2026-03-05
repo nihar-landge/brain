@@ -2,7 +2,7 @@
 Habit and HabitLog models.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,

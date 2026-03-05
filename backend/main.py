@@ -61,11 +61,12 @@ async def lifespan(app: FastAPI):
     # Create data directories
     import os
 
-    os.makedirs("./data/chromadb", exist_ok=True)
-    os.makedirs("./data/models", exist_ok=True)
-    os.makedirs("./data/backups", exist_ok=True)
-    os.makedirs("./ml/models", exist_ok=True)
-    os.makedirs("./logs", exist_ok=True)
+    base_dir = os.path.dirname(os.path.abspath(__file__))
+    os.makedirs(os.path.join(base_dir, "data", "chromadb"), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, "data", "models"), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, "data", "backups"), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, "ml", "models"), exist_ok=True)
+    os.makedirs(os.path.join(base_dir, "logs"), exist_ok=True)
     log.info("✅ Data directories ready")
 
     log.info("🎉 System ready!")

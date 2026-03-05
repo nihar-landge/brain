@@ -2,7 +2,7 @@
 Dopamine and Task models for gamification/productivity workflows.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy import (
     Column,

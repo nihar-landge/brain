@@ -12,6 +12,7 @@ from sqlalchemy import (
     Boolean,
     DateTime,
     JSON,
+    ForeignKey,
 )
 
 from utils.database import Base
@@ -48,7 +49,7 @@ class ChatHistory(Base):
     __tablename__ = "chat_history"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     role = Column(String(20), nullable=False)  # "user" or "assistant"
     message = Column(Text, nullable=False)
     related_journal_entries = Column(JSON, nullable=True)
@@ -62,13 +63,13 @@ class LettaMemory(Base):
     __tablename__ = "letta_memory"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     memory_type = Column(String(20), nullable=False)  # "core", "archival", "recall"
     memory_key = Column(String(100), nullable=True)  # For core: "human", "persona"
     memory_content = Column(Text, nullable=False)
     embedding_id = Column(String(100), nullable=True)  # Reference to ChromaDB
     created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
-    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=datetime.utcnow)
+    updated_at = Column(DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc))
 
 
 class SystemLog(Base):

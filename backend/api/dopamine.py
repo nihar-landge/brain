@@ -5,7 +5,7 @@ Suggestion flow: rules first, then AI re-ranking over user items.
 """
 
 import json
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException

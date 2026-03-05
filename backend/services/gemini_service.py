@@ -22,7 +22,7 @@ class GeminiService:
     """
 
     def __init__(self):
-        self._model = None
+        self._client = None
         self._initialized = False
         self._model_name = LLM_MODEL or "gemini-2.5-flash"
         self._fallback_models = [
@@ -32,15 +32,14 @@ class GeminiService:
         ]
 
     def _ensure_initialized(self):
-        """Lazy initialization of the Gemini model."""
+        """Lazy initialization of the Gemini client."""
         if self._initialized:
             return
 
         try:
-            import google.generativeai as genai
+            from google import genai
 
-            genai.configure(api_key=GEMINI_API_KEY)
-            self._model = genai.GenerativeModel(self._model_name)
+            self._client = genai.Client(api_key=GEMINI_API_KEY)
             self._initialized = True
             log.info(f"Gemini service initialized successfully ({self._model_name})")
         except Exception as e:
@@ -48,26 +47,24 @@ class GeminiService:
 
     def _try_fallback_model(self, prompt: str) -> Optional[str]:
         """Try alternate Gemini models when current model is quota-limited."""
-        try:
-            import google.generativeai as genai
-
-            for model_name in self._fallback_models:
-                if model_name == self._model_name:
-                    continue
-                try:
-                    model = genai.GenerativeModel(model_name)
-                    response = model.generate_content(prompt)
-                    if response and getattr(response, "text", None):
-                        self._model = model
-                        self._model_name = model_name
-                        log.warning(
-                            f"Switched Gemini model to {model_name} after quota/rate issue"
-                        )
-                        return response.text
-                except Exception:
-                    continue
-        except Exception:
+        if not self._client:
             return None
+
+        for model_name in self._fallback_models:
+            if model_name == self._model_name:
+                continue
+            try:
+                response = self._client.models.generate_content(
+                    model=model_name, contents=prompt
+                )
+                if response and getattr(response, "text", None):
+                    self._model_name = model_name
+                    log.warning(
+                        f"Switched Gemini model to {model_name} after quota/rate issue"
+                    )
+                    return response.text
+            except Exception:
+                continue
 
         return None
 
@@ -77,12 +74,14 @@ class GeminiService:
         Handles rate limits, timeouts, and API errors gracefully.
         """
         self._ensure_initialized()
-        if not self._model:
+        if not self._client:
             return self._fallback_response()
 
         for attempt in range(max_retries):
             try:
-                response = self._model.generate_content(prompt)
+                response = self._client.models.generate_content(
+                    model=self._model_name, contents=prompt
+                )
                 return response.text
 
             except Exception as e:
@@ -152,7 +151,7 @@ class GeminiService:
     ):
         """Generate a streaming response using Gemini with context."""
         self._ensure_initialized()
-        if not self._model:
+        if not self._client:
             yield self._fallback_response()
             return
             
@@ -165,7 +164,9 @@ class GeminiService:
         full_prompt = "\n".join(prompt_parts)
 
         try:
-            response = self._model.generate_content(full_prompt, stream=True)
+            response = self._client.models.generate_content_stream(
+                model=self._model_name, contents=full_prompt
+            )
             for chunk in response:
                 if chunk.text:
                     yield chunk.text
@@ -186,7 +187,7 @@ class GeminiService:
     ) -> str:
         """Generate natural language explanation of an ML prediction."""
         self._ensure_initialized()
-        if not self._model:
+        if not self._client:
             return f"Prediction: {prediction_value:.0%} ({prediction_type})"
 
         factors_str = "\n".join(f"- {f}" for f in factors)

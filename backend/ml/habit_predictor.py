@@ -4,7 +4,7 @@ Habit Success Predictor - XGBoost model for habit prediction.
 
 import joblib
 import os
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 import numpy as np
 from sqlalchemy.orm import Session

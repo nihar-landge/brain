@@ -119,7 +119,7 @@ async def get_goals(status: str = "active", user: User = Depends(verify_api_key)
 @router.get("/{goal_id}", response_model=dict)
 async def get_goal(goal_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Get specific goal with milestones, habits, and recent sessions."""
-    goal = db.query(Goal).get(goal_id)
+    goal = db.get(Goal, goal_id)
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
@@ -205,7 +205,7 @@ async def get_goal(goal_id: int, user: User = Depends(verify_api_key), db: Sessi
 @router.put("/{goal_id}", response_model=dict)
 async def update_goal(goal_id: int, updates: GoalUpdate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Update goal."""
-    goal = db.query(Goal).get(goal_id)
+    goal = db.get(Goal, goal_id)
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
@@ -226,7 +226,7 @@ async def update_goal(goal_id: int, updates: GoalUpdate, user: User = Depends(ve
 @router.delete("/{goal_id}", response_model=dict)
 async def delete_goal(goal_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)):
     """Delete goal."""
-    goal = db.query(Goal).get(goal_id)
+    goal = db.get(Goal, goal_id)
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
@@ -240,7 +240,7 @@ async def add_milestone(
     goal_id: int, milestone: MilestoneCreate, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Add milestone to a goal."""
-    goal = db.query(Goal).get(goal_id)
+    goal = db.get(Goal, goal_id)
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
 
@@ -265,7 +265,7 @@ async def complete_milestone(
     goal_id: int, milestone_id: int, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
 ):
     """Mark milestone as completed."""
-    milestone = db.query(GoalMilestone).get(milestone_id)
+    milestone = db.get(GoalMilestone, milestone_id)
     if not milestone or milestone.goal_id != goal_id:
         raise HTTPException(status_code=404, detail="Milestone not found")
 
@@ -274,7 +274,7 @@ async def complete_milestone(
     db.commit()
 
     # Update goal progress
-    goal = db.query(Goal).get(goal_id)
+    goal = db.get(Goal, goal_id)
     all_milestones = (
         db.query(GoalMilestone).filter(GoalMilestone.goal_id == goal_id).all()
     )

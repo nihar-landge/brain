@@ -2,7 +2,7 @@
 Training Pipeline - Automated model training and retraining.
 """
 
-from datetime import datetime, timezone, timezone
+from datetime import datetime, timezone
 
 from sqlalchemy.orm import Session
 
