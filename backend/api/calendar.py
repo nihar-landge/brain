@@ -213,7 +213,7 @@ async def google_auth_url(user: User = Depends(verify_api_key)):
 
 @public_router.get("/google/callback", response_model=dict)
 async def google_callback(
-    code: str, state: Optional[str] = None, user: User = Depends(verify_api_key), db: Session = Depends(get_db)
+    code: str, state: Optional[str] = None, db: Session = Depends(get_db)
 ):
     if not google_calendar_service.is_configured():
         raise HTTPException(status_code=400, detail="Google Calendar is not configured")
