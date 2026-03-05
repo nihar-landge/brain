@@ -134,7 +134,7 @@ class GoogleCalendarService:
         if not service or not integration:
             return None
 
-        timezone = self._get_user_timezone(db, user_id)
+        tz_string = self._get_user_timezone(db, user_id)
         target_name = "Brain Calendar"
 
         # Reuse existing calendar if already set
@@ -157,7 +157,7 @@ class GoogleCalendarService:
 
         created = (
             service.calendars()
-            .insert(body={"summary": target_name, "timeZone": timezone})
+            .insert(body={"summary": target_name, "timeZone": tz_string})
             .execute()
         )
         integration.calendar_id = created.get("id")
@@ -186,7 +186,7 @@ class GoogleCalendarService:
         if not calendar_id:
             return None
 
-        timezone = self._get_user_timezone(db, user_id)
+        tz_string = self._get_user_timezone(db, user_id)
         title = f"Task: {task.title}"
         desc = task.description or ""
 
@@ -195,9 +195,9 @@ class GoogleCalendarService:
             end_dt = task.scheduled_end or (task.scheduled_at + timedelta(minutes=30))
             body["start"] = {
                 "dateTime": task.scheduled_at.isoformat(),
-                "timeZone": timezone,
+                "timeZone": tz_string,
             }
-            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": timezone}
+            body["end"] = {"dateTime": end_dt.isoformat(), "timeZone": tz_string}
         elif task.due_date:
             # all-day event
             next_day = task.due_date + timedelta(days=1)
@@ -238,13 +238,13 @@ class GoogleCalendarService:
         if not calendar_id:
             return None
 
-        timezone = self._get_user_timezone(db, user_id)
+        tz_string = self._get_user_timezone(db, user_id)
         title = f"Focus: {ctx.context_name or 'Session'}"
         body = {
             "summary": title,
             "description": f"Type: {ctx.context_type or 'deep_work'}",
-            "start": {"dateTime": ctx.started_at.isoformat(), "timeZone": timezone},
-            "end": {"dateTime": ctx.ended_at.isoformat(), "timeZone": timezone},
+            "start": {"dateTime": ctx.started_at.isoformat(), "timeZone": tz_string},
+            "end": {"dateTime": ctx.ended_at.isoformat(), "timeZone": tz_string},
         }
 
         event = service.events().insert(calendarId=calendar_id, body=body).execute()
