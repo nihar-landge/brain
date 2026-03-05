@@ -226,6 +226,11 @@ async def google_callback(
         error_msg = f"Google OAuth failed: {e.response.text}"
         print(error_msg)
         raise HTTPException(status_code=400, detail=error_msg)
+    except Exception as e:
+        import traceback
+        error_msg = f"Internal Exception during OAuth: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
         
     return {"status": "success", "message": "Google Calendar connected"}
 
