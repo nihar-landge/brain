@@ -72,9 +72,9 @@ export default function TasksPage() {
         habit_id: form.habit_id ? Number(form.habit_id) : null,
         tags: form.tags
           ? form.tags
-              .split(',')
-              .map((t) => t.trim())
-              .filter(Boolean)
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
           : [],
       })
       setForm(EMPTY_FORM)
@@ -119,7 +119,7 @@ export default function TasksPage() {
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         <div className="card p-3 sm:p-4"><p className="text-xs text-gray-500">Open Tasks</p><p className="text-xl font-semibold mt-1">{todoCount}</p></div>
         <div className="card p-3 sm:p-4"><p className="text-xs text-gray-500">Completed</p><p className="text-xl font-semibold mt-1">{tasks.filter((t) => t.status === 'done').length}</p></div>
-        <div className="card p-3 sm:p-4"><p className="text-xs text-gray-500">High Priority</p><p className="text-xl font-semibold mt-1">{tasks.filter((t) => ['high', 'critical'].includes(t.priority)).length}</p></div>
+        <div className="card p-3 sm:p-4"><p className="text-xs text-gray-500">High Priority</p><p className="text-xl font-semibold mt-1">{tasks.filter((t) => ['high', 'critical'].includes(t.priority) && t.status !== 'done').length}</p></div>
         <div className="card p-3 sm:p-4"><p className="text-xs text-gray-500">Scheduled</p><p className="text-xl font-semibold mt-1">{tasks.filter((t) => t.scheduled_at).length}</p></div>
       </div>
 
